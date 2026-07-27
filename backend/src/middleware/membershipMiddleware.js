@@ -15,6 +15,7 @@ const USER_FEATURE_ALIASES = {
   PARTNER_SEARCH: "partner_search",
   ADVANCED_SEARCH: "advanced_search_filter",
   EVENT_ACCESS: "tour_access",
+  AUDIO_CALL: "audio_call",
 };
 
 const PROVIDER_FEATURE_ALIASES = {

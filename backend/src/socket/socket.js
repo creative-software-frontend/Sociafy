@@ -1,6 +1,7 @@
 const { Server } = require("socket.io");
 const { verifySocketJwt } = require("./socketAuth");
 const { registerChatSocket } = require("./chatSocket");
+const { registerCallSocket } = require("./callSocket");
 
 function setupSocket(httpServer) {
     const io = new Server(httpServer, {
@@ -17,6 +18,8 @@ function setupSocket(httpServer) {
 
     // userId -> socketId (online users)
     const onlineUsers = new Map();
+    // callerId -> { callerId, calleeId, status, startedAt, timeoutRef }
+    const activeCalls = new Map();
 
     io.use(async (socket, next) => {
         try {
@@ -41,6 +44,7 @@ function setupSocket(httpServer) {
         }
 
         registerChatSocket(io, socket, onlineUsers);
+        registerCallSocket(io, socket, onlineUsers, activeCalls);
 
         socket.on("disconnect", () => {
             if (socket.userId != null && onlineUsers.get(socket.userId) === socket.id) {

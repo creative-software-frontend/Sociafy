@@ -47,6 +47,7 @@ const USER_FEATURE_ALIASES: Record<string, string> = {
     ADVANCED_SEARCH: 'advanced_search_filter',
     EVENT_ACCESS: 'tour_access',
     TOUR_ACCESS: 'tour_access',
+    AUDIO_CALL: 'audio_call',
 };
 
 const PROVIDER_FEATURE_ALIASES: Record<string, string> = {

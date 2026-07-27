@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../../../context/AuthContext';
+import { useMembership } from '../../../context/MembershipContext';
 import { serviceApi, providerApi, userApi } from '../../../utils/api';
 import type { ChatMessage, ActiveUser } from '../../../utils/api';
 import { TopNav } from './TopNav';
 import { FeatureGate } from '../../../components/FeatureGate';
+import { CallButton } from '../../call/components/CallButton';
+import { useCallContext } from '../../call/context/callContextValue';
+import { CallHistoryPage } from '../../call/components/CallHistoryPage';
 
 
 /* ─── helpers ─── */
@@ -76,6 +80,8 @@ export function ChatPage() {
     const myId = (user as any)?.id as number | undefined;
     const myName = user?.username ?? (user as any)?.name ?? 'Me';
     const isProvider = (user as any)?.role === 'provider';
+    const { hasFeature } = useMembership();
+    const { callState } = useCallContext();
 
     const [contacts, setContacts] = useState<ActiveUser[]>([]);
     const [cLoading, setCLoading] = useState(true);
@@ -103,6 +109,7 @@ export function ChatPage() {
     // partner request is accepted (plus Silver membership, enforced backend).
     const [partnerLocked, setPartnerLocked] = useState(false);
     const [partnerChecking, setPartnerChecking] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
 
     useEffect(() => {
         (async () => {
@@ -496,6 +503,35 @@ export function ChatPage() {
                                         {selected.is_online === 1 ? '● Active now' : 'Offline'}
                                     </p>
                                 </div>
+                                <CallButton
+                                    peerId={selected.id}
+                                    peerName={selected.name}
+                                    isOnline={selected.is_online === 1}
+                                    canCall={!partnerLocked && hasFeature('AUDIO_CALL') && callState.status === 'idle'}
+                                />
+                                <button
+                                    onClick={() => setShowHistory(true)}
+                                    style={{
+                                        width: 34,
+                                        height: 34,
+                                        borderRadius: 10,
+                                        border: '1px solid rgba(255,255,255,0.08)',
+                                        background: 'rgba(255,255,255,0.04)',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        flexShrink: 0,
+                                        transition: 'all 0.15s',
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                                    title="Call History"
+                                >
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                                    </svg>
+                                </button>
                                 {/* info icon */}
                                 <div style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
@@ -618,6 +654,7 @@ export function ChatPage() {
                     )}
                 </div>
             </FeatureGate>
+            {showHistory && <CallHistoryPage onClose={() => setShowHistory(false)} />}
         </>
     );
 }
