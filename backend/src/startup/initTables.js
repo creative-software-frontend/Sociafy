@@ -172,7 +172,7 @@ module.exports = async (db) => {
             // Provider coming-soon features (DB-driven via is_coming_soon)
             ['provider_audio_call', 1],
             ['provider_video_call', 1],
-            ['provider_verified_badge', 1],
+            ['provider_verified_badge', 0],
             ['provider_priority_matching', 1],
             ['provider_vip_support', 1],
         ]);

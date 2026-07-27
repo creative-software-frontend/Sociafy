@@ -161,8 +161,15 @@
 }
 
 @keyframes toastIn {
-  from { opacity: 0; transform: translateY(-12px); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 
@@ -1051,8 +1058,11 @@ button:focus-visible {
 /* ============================================================
    CUSTOM CURSOR
    ============================================================ */
-a, button, input, [role="button"] {
-    cursor: none;
+a,
+button,
+input,
+[role="button"] {
+  cursor: none;
 }
 
 /* ============================================================
@@ -1110,9 +1120,11 @@ a, button, input, [role="button"] {
 .navbar-hamburger.open span:nth-child(1) {
   transform: translateY(6.5px) rotate(45deg);
 }
+
 .navbar-hamburger.open span:nth-child(2) {
   opacity: 0;
 }
+
 .navbar-hamburger.open span:nth-child(3) {
   transform: translateY(-6.5px) rotate(-45deg);
 }

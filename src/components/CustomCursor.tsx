@@ -8,15 +8,15 @@ export function CustomCursor() {
         const updateCursor = (e: MouseEvent) => {
             setPosition({ x: e.clientX, y: e.clientY });
             const target = e.target as HTMLElement;
-            
+
             // Check if element or any of its ancestors has cursor: pointer or is an interactive tag
             const hasPointerStyle = target && (
-                window.getComputedStyle(target).cursor === 'pointer' || 
-                target.closest('a') || 
-                target.closest('button') || 
+                window.getComputedStyle(target).cursor === 'pointer' ||
+                target.closest('a') ||
+                target.closest('button') ||
                 target.closest('input')
             );
-            
+
             setIsHovering(!!hasPointerStyle);
         };
 

@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
 import { TopNav } from "./TopNav";
 import { useAuth } from "../../../context/AuthContext";
+import { useMembership } from "../../../context/MembershipContext";
 import {
     userApi,
     type UpdateUserProfilePayload,
@@ -157,6 +158,7 @@ export function ProfilePage() {
     const navigate = useNavigate();
     const { role } = useParams<{ role: string }>();
     const auth = useAuth();
+    const { hasFeature } = useMembership();
 
     const [profile, setProfile] = useState<UserProfile | null>(null);
 
@@ -418,28 +420,38 @@ export function ProfilePage() {
                                 color: "var(--text-primary)",
                                 marginBottom: "6px",
                                 textTransform: "capitalize",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "8px",
                             }}
                         >
                             {profile?.name || "Loading…"}
+                            {profile && !editMode && hasFeature('VERIFIED_BADGE') && (
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                                    <circle cx="12" cy="12" r="12" fill="#1d9bf0" />
+                                    <path d="M9 12.5l2 2 4-4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                                </svg>
+                            )}
                         </h3>
-
-                        <span
-                            style={{
-                                display: "inline-block",
-                                fontSize: "0.65rem",
-                                letterSpacing: "0.15em",
-                                textTransform: "uppercase",
-                                color: "var(--blue-vivid)",
-                                fontFamily: "'Inter', sans-serif",
-                                fontWeight: 700,
-                                background: "var(--blue-glow)",
-                                padding: "6px 18px",
-                                borderRadius: "20px",
-                                border: "1px solid var(--border-subtle)",
-                            }}
-                        >
-                            {loading ? "Loading…" : profile ? (editMode ? "Editing" : "Verified") : "Not set"}
-                        </span>
+                        {editMode && (
+                            <span
+                                style={{
+                                    display: "inline-block",
+                                    fontSize: "0.65rem",
+                                    letterSpacing: "0.15em",
+                                    textTransform: "uppercase",
+                                    color: "var(--blue-vivid)",
+                                    fontFamily: "'Inter', sans-serif",
+                                    fontWeight: 700,
+                                    background: "var(--blue-glow)",
+                                    padding: "6px 18px",
+                                    borderRadius: "20px",
+                                    border: "1px solid var(--border-subtle)",
+                                }}
+                            >
+                                Editing
+                            </span>
+                        )}
 
                         {error && (
                             <div
