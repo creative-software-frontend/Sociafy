@@ -11,6 +11,43 @@ function cleanupCall(activeCalls, callerId) {
     return call;
 }
 
+async function endCallAndBill(io, activeCalls, userId) {
+    const call = callService.findCallByUserId(activeCalls, userId);
+    if (!call) return;
+
+    const { callerId, calleeId } = call;
+    cleanupCall(activeCalls, callerId);
+
+    const otherId = userId === callerId ? calleeId : callerId;
+
+    // If a call log exists (call was connected), finalise duration + billing
+    if (call.callLogId && call.startedAt) {
+        const endedAt = new Date();
+        const durationSeconds = Math.floor((endedAt.getTime() - call.startedAt.getTime()) / 1000);
+        await db.query(
+            "UPDATE call_logs SET ended_at = ?, duration_seconds = ?, ended_by = ? WHERE id = ?",
+            [endedAt, durationSeconds, userId, call.callLogId]
+        );
+        // Charge both users
+        await callService.chargeForCall(call.callLogId, callerId, calleeId, durationSeconds);
+    }
+
+    io.to(`user_${callerId}`).emit("call:ended", {
+        caller_id: callerId,
+        callee_id: calleeId,
+        reason: "ended",
+        ended_by: userId,
+    });
+    if (otherId !== userId) {
+        io.to(`user_${otherId}`).emit("call:ended", {
+            caller_id: callerId,
+            callee_id: calleeId,
+            reason: "ended",
+            ended_by: userId,
+        });
+    }
+}
+
 function registerCallSocket(io, socket, onlineUsers, activeCalls) {
 
     /* ───────── call:request ───────── */
@@ -19,7 +56,6 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
         const calleeId = Number(receiver_id);
         const callerRole = socket.role;
 
-        // Fetch callee role
         const [calleeRows] = await db.query("SELECT role FROM users WHERE id = ?", [calleeId]);
         if (!calleeRows.length) {
             socket.emit("call:error", { message: "User not found" });
@@ -27,7 +63,6 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
         }
         const calleeRole = calleeRows[0].role;
 
-        // Validate
         const result = await callService.checkCallPermission({
             callerId,
             calleeId,
@@ -46,11 +81,9 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
             return;
         }
 
-        // Get caller name for the incoming notification
         const [nameRows] = await db.query("SELECT name FROM users WHERE id = ?", [callerId]);
         const callerName = nameRows[0]?.name || "Unknown";
 
-        // Create active call entry
         const callInfo = {
             callerId,
             calleeId,
@@ -58,14 +91,14 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
             status: "calling",
             createdAt: Date.now(),
             timeoutRef: null,
+            callLogId: null,
+            startedAt: null,
         };
 
         activeCalls.set(callerId, callInfo);
 
-        // Caller receives acknowledgement
         socket.emit("call:calling", { receiver_id: calleeId });
 
-        // Notify callee
         io.to(`user_${calleeId}`).emit("call:incoming", {
             caller_id: callerId,
             caller_name: callerName,
@@ -73,7 +106,6 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
             call_type,
         });
 
-        // 30-second timeout — if callee doesn't accept, cancel automatically
         callInfo.timeoutRef = setTimeout(() => {
             const call = activeCalls.get(callerId);
             if (call && call.status === "calling") {
@@ -106,7 +138,6 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
 
         call.status = "ringing";
 
-        // Notify caller that callee accepted
         io.to(`user_${call.callerId}`).emit("call:accepted", {
             callee_id: calleeId,
         });
@@ -138,42 +169,29 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
         });
     });
 
-    /* ───────── call:end ───────── */
-    socket.on("call:end", async ({ target_id }) => {
-        const userId = socket.userId;
-        const call = callService.findCallByUserId(activeCalls, userId);
-        if (!call) return;
+    /* ───────── call:answer + create call log ───────── */
+    socket.on("call:answer", async ({ caller_id, sdp }) => {
+        const calleeId = socket.userId;
+        const call = activeCalls.get(Number(caller_id));
+        if (!call || call.calleeId !== calleeId) return;
 
-        cleanupCall(activeCalls, call.callerId);
-
-        const otherId = userId === call.callerId ? call.calleeId : call.callerId;
-        io.to(`user_${call.callerId}`).emit("call:ended", {
-            caller_id: call.callerId,
-            callee_id: call.calleeId,
-            reason: "ended",
-            ended_by: userId,
+        io.to(`user_${Number(caller_id)}`).emit("call:answer", {
+            sdp,
+            from: calleeId,
         });
-        if (otherId !== userId) {
-            io.to(`user_${otherId}`).emit("call:ended", {
-                caller_id: call.callerId,
-                callee_id: call.calleeId,
-                reason: "ended",
-                ended_by: userId,
-            });
-        }
+
+        // Create call log entry when call is connected
+        call.startedAt = new Date();
+        const [result] = await db.query(
+            "INSERT INTO call_logs (caller_id, callee_id, status, call_type, started_at) VALUES (?, ?, 'connected', ?, ?)",
+            [call.callerId, call.calleeId, call.callType || "audio", call.startedAt]
+        );
+        call.callLogId = result.insertId;
     });
 
     /* ───────── call:offer ───────── */
     socket.on("call:offer", async ({ receiver_id, sdp }) => {
         io.to(`user_${Number(receiver_id)}`).emit("call:offer", {
-            sdp,
-            from: socket.userId,
-        });
-    });
-
-    /* ───────── call:answer ───────── */
-    socket.on("call:answer", async ({ caller_id, sdp }) => {
-        io.to(`user_${Number(caller_id)}`).emit("call:answer", {
             sdp,
             from: socket.userId,
         });
@@ -187,23 +205,33 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
         });
     });
 
+    /* ───────── call:end ───────── */
+    socket.on("call:end", async ({ target_id }) => {
+        await endCallAndBill(io, activeCalls, socket.userId);
+    });
+
     /* ───────── disconnect ───────── */
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
         const userId = socket.userId;
         if (userId == null) return;
 
         const call = callService.findCallByUserId(activeCalls, userId);
         if (!call) return;
 
-        cleanupCall(activeCalls, call.callerId);
-
-        const otherId = userId === call.callerId ? call.calleeId : call.callerId;
-        io.to(`user_${otherId}`).emit("call:ended", {
-            caller_id: call.callerId,
-            callee_id: call.calleeId,
-            reason: "disconnect",
-            ended_by: userId,
-        });
+        if (call.callLogId && call.startedAt) {
+            // Call was connected — finalise with billing
+            await endCallAndBill(io, activeCalls, userId);
+        } else {
+            // Call never connected — just clean up
+            cleanupCall(activeCalls, call.callerId);
+            const otherId = userId === call.callerId ? call.calleeId : call.callerId;
+            io.to(`user_${otherId}`).emit("call:ended", {
+                caller_id: call.callerId,
+                callee_id: call.calleeId,
+                reason: "disconnect",
+                ended_by: userId,
+            });
+        }
     });
 }
 

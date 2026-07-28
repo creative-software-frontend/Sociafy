@@ -110,6 +110,16 @@ export function ChatPage() {
     const [partnerLocked, setPartnerLocked] = useState(false);
     const [partnerChecking, setPartnerChecking] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
+    const [hasBalance, setHasBalance] = useState(true);
+
+    useEffect(() => {
+        (async () => {
+            const res = await userApi.getWallet();
+            if (!res.error && res.data) {
+                setHasBalance(res.data.balance >= 2.00);
+            }
+        })();
+    }, []);
 
     useEffect(() => {
         (async () => {
@@ -508,6 +518,7 @@ export function ChatPage() {
                                     peerName={selected.name}
                                     isOnline={selected.is_online === 1}
                                     canCall={!partnerLocked && hasFeature('AUDIO_CALL') && callState.status === 'idle'}
+                                    hasBalance={hasBalance}
                                 />
                                 <button
                                     onClick={() => setShowHistory(true)}

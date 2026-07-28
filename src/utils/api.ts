@@ -90,7 +90,9 @@ export type TransactionType =
     | 'withdraw'
     | 'earning'
     | 'event_payment'
-    | 'event_income';
+    | 'event_income'
+    | 'membership_purchase'
+    | 'audio_call';
 
 export interface Transaction {
     id: number;

@@ -85,6 +85,11 @@ const ICONS = {
             <line x1="8" y1="14" x2="12" y2="14" />
         </svg>
     ),
+    callhistory: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </svg>
+    ),
     earnings: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
@@ -101,6 +106,7 @@ const USER_NAV = [
     { to: '/membership', end: false, label: 'MEMBERSHIP', icon: ICONS.membership },
     { to: '/wallet', end: false, label: 'WALLET', icon: ICONS.wallet },
     { to: '/chat', end: false, label: 'CHAT', icon: ICONS.chat },
+    { to: '/call-history', end: false, label: 'CALLS', icon: ICONS.callhistory },
     { to: '/newsfeed', end: false, label: 'NEWSFEED', icon: ICONS.newsfeed },
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },
 ];
@@ -120,6 +126,7 @@ const PROVIDER_NAV = [
     { to: '/membership', end: false, label: 'MEMBERSHIP', icon: ICONS.membership },
     { to: '/wallet', end: false, label: 'WALLET', icon: ICONS.wallet },
     { to: '/chat', end: false, label: 'CHAT', icon: ICONS.chat },
+    { to: '/call-history', end: false, label: 'CALLS', icon: ICONS.callhistory },
     { to: '/newsfeed', end: false, label: 'NEWSFEED', icon: ICONS.newsfeed },
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },
 ];

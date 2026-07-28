@@ -8,9 +8,20 @@ export interface CallLog {
     ended_at: string | null;
     duration_seconds: number | null;
     ended_by: number | null;
+    cost?: number;
+    caller_cost?: number;
+    receiver_cost?: number;
     created_at: string;
     caller_name: string;
     callee_name: string;
+}
+
+export interface CallHistoryResponse {
+    calls: CallLog[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
 }
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -30,6 +41,6 @@ async function request<T>(path: string): Promise<{ data?: T; error?: string }> {
 }
 
 export const callApi = {
-    getHistory: () => request<{ calls: CallLog[] }>('/call/history'),
+    getHistory: (query = '') => request<CallHistoryResponse>(`/call/history${query ? '?' + query : ''}`),
     getCall: (id: number) => request<{ call: CallLog }>(`/call/${id}`),
 };

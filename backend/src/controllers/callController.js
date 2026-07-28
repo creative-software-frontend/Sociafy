@@ -3,8 +3,17 @@ const callService = require("../services/callService");
 async function getHistory(req, res) {
     try {
         const userId = req.user.id;
-        const calls = await callService.getCallHistory(userId);
-        return res.json({ calls });
+        const role = req.user.role;
+        const { filter, search, page, limit } = req.query;
+        const result = await callService.getFilteredCallHistory({
+            userId,
+            role,
+            filter: filter || "",
+            search: search || "",
+            page: Math.max(1, parseInt(page) || 1),
+            limit: Math.min(100, Math.max(1, parseInt(limit) || 20)),
+        });
+        return res.json(result);
     } catch (err) {
         return res.status(500).json({ message: err.message || "Failed to fetch call history" });
     }

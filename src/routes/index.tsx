@@ -73,6 +73,13 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: "call-history",
+        lazy: async () => {
+          const { default: CallHistoryRoute } = await import("../features/dashboard/pages/CallHistoryRoute");
+          return { element: <CallHistoryRoute /> };
+        },
+      },
+      {
         path: "membership",
         lazy: async () => {
           const { default: MembershipRoute } = await import("../features/dashboard/pages/MembershipRoute");
