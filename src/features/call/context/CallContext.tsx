@@ -2,6 +2,7 @@ import React, { useEffect, useReducer, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { useCallManager } from '../hooks/useCallManager';
+import { useCallAudio } from '../hooks/useCallAudio';
 import { callReducer, INITIAL_CALL_STATE } from '../types/call';
 import { CallContext } from './callContextValue';
 import { IncomingCallOverlay } from '../components/IncomingCallOverlay';
@@ -16,6 +17,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const webRTC = useWebRTC();
 
     const manager = useCallManager(socket, dispatch, webRTC);
+    useCallAudio(callState.status, callState.direction);
 
     useEffect(() => {
         const token = localStorage.getItem('bluedise_token');

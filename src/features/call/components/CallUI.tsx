@@ -48,6 +48,7 @@ export function CallUI() {
     const { user } = useAuth();
     const audioRef = useRef<HTMLAudioElement>(null);
     const startedAtRef = useRef<number | null>(null);
+    const actionLockRef = useRef(false);
 
     useEffect(() => {
         if (callState.status === 'connected' && startedAtRef.current === null) {
@@ -55,6 +56,7 @@ export function CallUI() {
         }
         if (callState.status === 'idle') {
             startedAtRef.current = null;
+            actionLockRef.current = false;
         }
     }, [callState.status]);
 
@@ -77,6 +79,14 @@ export function CallUI() {
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [callState.status, cancelCall, endCall]);
+
+    // Prevent accidental double taps
+    const withLock = (fn: () => void) => () => {
+        if (actionLockRef.current) return;
+        actionLockRef.current = true;
+        fn();
+        setTimeout(() => { actionLockRef.current = false; }, 600);
+    };
 
     const peerRole = callState.peerRole
         || (callState.direction === 'outgoing'
@@ -101,6 +111,7 @@ export function CallUI() {
             fontFamily: "'Inter', -apple-system, sans-serif",
             WebkitFontSmoothing: 'antialiased',
             overflow: 'hidden',
+            padding: 'env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)',
         }}>
             <style>{`
                 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -207,7 +218,7 @@ export function CallUI() {
                 {/* ─── Action button ─── */}
                 {isPreConnection && (
                     <button
-                        onClick={cancelCall}
+                        onClick={withLock(cancelCall)}
                         aria-label="Cancel call"
                         style={{
                             width: 72,

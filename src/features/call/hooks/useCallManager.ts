@@ -64,6 +64,7 @@ export function useCallManager(socket: Socket | null, dispatch: React.Dispatch<C
             setTimeout(() => dispatch({ type: 'RESET' }), 3000);
             return;
         }
+        console.log(`[startCall] emitting call:request with receiver_id=${peerId} peerName=${peerName}`);
         dispatch({ type: 'SET_CALLING', payload: { peerId, peerName } });
         emit('call:request', { receiver_id: peerId, call_type: 'audio' });
     }, [socket, dispatch, webRTC, emit]);
@@ -112,6 +113,7 @@ export function useCallManager(socket: Socket | null, dispatch: React.Dispatch<C
         if (!socket) return;
 
         const onIncoming = (data: { caller_id: number; caller_name: string; caller_role?: string; call_type?: string }) => {
+            console.log(`[call:incoming] received caller_id=${data.caller_id} caller_name=${data.caller_name}`);
             dispatch({
                 type: 'SET_INCOMING',
                 payload: {
