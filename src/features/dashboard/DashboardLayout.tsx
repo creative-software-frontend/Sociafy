@@ -106,7 +106,6 @@ const USER_NAV = [
     { to: '/membership', end: false, label: 'MEMBERSHIP', icon: ICONS.membership },
     { to: '/wallet', end: false, label: 'WALLET', icon: ICONS.wallet },
     { to: '/chat', end: false, label: 'CHAT', icon: ICONS.chat },
-    { to: '/call-history', end: false, label: 'CALLS', icon: ICONS.callhistory },
     { to: '/newsfeed', end: false, label: 'NEWSFEED', icon: ICONS.newsfeed },
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },
 ];
@@ -126,7 +125,6 @@ const PROVIDER_NAV = [
     { to: '/membership', end: false, label: 'MEMBERSHIP', icon: ICONS.membership },
     { to: '/wallet', end: false, label: 'WALLET', icon: ICONS.wallet },
     { to: '/chat', end: false, label: 'CHAT', icon: ICONS.chat },
-    { to: '/call-history', end: false, label: 'CALLS', icon: ICONS.callhistory },
     { to: '/newsfeed', end: false, label: 'NEWSFEED', icon: ICONS.newsfeed },
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },
 ];

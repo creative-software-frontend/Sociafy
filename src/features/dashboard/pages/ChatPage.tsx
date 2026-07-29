@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../../../context/AuthContext';
 import { useMembership } from '../../../context/MembershipContext';
@@ -8,7 +10,6 @@ import { TopNav } from './TopNav';
 import { FeatureGate } from '../../../components/FeatureGate';
 import { CallButton } from '../../call/components/CallButton';
 import { useCallContext } from '../../call/context/callContextValue';
-import { CallHistoryPage } from '../../call/components/CallHistoryPage';
 
 
 /* ─── helpers ─── */
@@ -82,6 +83,8 @@ export function ChatPage() {
     const isProvider = (user as any)?.role === 'provider';
     const { hasFeature } = useMembership();
     const { callState } = useCallContext();
+    const navigate = useNavigate();
+    const { role } = useParams<{ role: string }>();
 
     const [contacts, setContacts] = useState<ActiveUser[]>([]);
     const [cLoading, setCLoading] = useState(true);
@@ -109,7 +112,6 @@ export function ChatPage() {
     // partner request is accepted (plus Silver membership, enforced backend).
     const [partnerLocked, setPartnerLocked] = useState(false);
     const [partnerChecking, setPartnerChecking] = useState(false);
-    const [showHistory, setShowHistory] = useState(false);
     const [hasBalance, setHasBalance] = useState(true);
 
     useEffect(() => {
@@ -426,9 +428,41 @@ export function ChatPage() {
                                         <h1 style={{ color: '#fff', fontSize: '1.55rem', fontWeight: 800, letterSpacing: '-0.03em', margin: 0 }}>Messages</h1>
                                         <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.75rem', marginTop: 2 }}>{filtered.length} {isProvider ? 'users' : 'providers'} available</p>
                                     </div>
-                                    {/* compose icon */}
-                                    <div style={{ width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(99,102,241,0.5)', cursor: 'pointer' }}>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
+                                    {/* history + compose */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <button
+                                            onClick={() => navigate(`/${role}/dashboard/call-history`)}
+                                            style={{
+                                                padding: '0 12px',
+                                                height: 34,
+                                                borderRadius: 10,
+                                                border: '1px solid rgba(255,255,255,0.1)',
+                                                background: 'rgba(255,255,255,0.05)',
+                                                color: 'rgba(255,255,255,0.55)',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 6,
+                                                fontSize: '0.75rem',
+                                                fontWeight: 600,
+                                                fontFamily: "'Inter',sans-serif",
+                                                letterSpacing: '0.02em',
+                                                transition: 'all 0.15s',
+                                                WebkitTapHighlightColor: 'transparent',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                                            title="Call History"
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                                            </svg>
+                                            <span style={{ display: 'inline' }}>History</span>
+                                        </button>
+                                        <div style={{ width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(99,102,241,0.5)', cursor: 'pointer' }}>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
+                                        </div>
                                     </div>
                                 </div>
                                 {/* search */}
@@ -520,29 +554,6 @@ export function ChatPage() {
                                     canCall={!partnerLocked && hasFeature('AUDIO_CALL') && callState.status === 'idle'}
                                     hasBalance={hasBalance}
                                 />
-                                <button
-                                    onClick={() => setShowHistory(true)}
-                                    style={{
-                                        width: 34,
-                                        height: 34,
-                                        borderRadius: 10,
-                                        border: '1px solid rgba(255,255,255,0.08)',
-                                        background: 'rgba(255,255,255,0.04)',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        flexShrink: 0,
-                                        transition: 'all 0.15s',
-                                    }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.15)'; }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-                                    title="Call History"
-                                >
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                                    </svg>
-                                </button>
                                 {/* info icon */}
                                 <div style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
@@ -665,7 +676,6 @@ export function ChatPage() {
                     )}
                 </div>
             </FeatureGate>
-            {showHistory && <CallHistoryPage onClose={() => setShowHistory(false)} />}
         </>
     );
 }

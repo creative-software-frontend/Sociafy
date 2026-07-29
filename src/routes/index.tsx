@@ -79,6 +79,7 @@ export const router = createBrowserRouter([
           return { element: <CallHistoryRoute /> };
         },
       },
+
       {
         path: "membership",
         lazy: async () => {

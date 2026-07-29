@@ -1,5 +1,8 @@
+import { useNavigate, useParams } from 'react-router-dom';
 import { CallHistoryPage } from '../../call/components/CallHistoryPage';
 
 export default function CallHistoryRoute() {
-    return <CallHistoryPage onClose={() => window.history.back()} />;
+    const navigate = useNavigate();
+    const { role } = useParams<{ role: string }>();
+    return <CallHistoryPage onClose={() => navigate(`/${role}/dashboard/chat`)} />;
 }
