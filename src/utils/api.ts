@@ -910,6 +910,15 @@ export const adminApi = {
             { method: 'PUT', body: JSON.stringify({ rate_value }) }
         ),
 
+    getPlatformSettings: () =>
+        request<{ call_rate_per_minute: number; call_rate_per_second: number }>('/admin/platform-settings'),
+
+    updatePlatformSettings: (call_rate_per_minute: number) =>
+        request<{ call_rate_per_minute: number; call_rate_per_second: number }>('/admin/platform-settings', {
+            method: 'PUT',
+            body: JSON.stringify({ call_rate_per_minute }),
+        }),
+
     toggleUserActive: (id: number) =>
         request<{ message: string; is_active: number }>(
             `/admin/users/${id}/toggle-active`,

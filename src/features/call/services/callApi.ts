@@ -43,4 +43,5 @@ async function request<T>(path: string): Promise<{ data?: T; error?: string }> {
 export const callApi = {
     getHistory: (query = '') => request<CallHistoryResponse>(`/call/history${query ? '?' + query : ''}`),
     getCall: (id: number) => request<{ call: CallLog }>(`/call/${id}`),
+    getCallRate: () => request<{ call_rate_per_minute: number; call_rate_per_second: number }>('/call/rate'),
 };

@@ -174,6 +174,13 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: "platform-settings",
+        lazy: async () => {
+          const { PlatformSettingsPage } = await import("../features/dashboard/pages/PlatformSettingsPage");
+          return { element: <PlatformSettingsPage /> };
+        },
+      },
+      {
         path: "reports",
         lazy: async () => {
           const { default: AdminReportsPage } = await import("../features/dashboard/pages/AdminReportsPage");

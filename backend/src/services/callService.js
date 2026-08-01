@@ -1,11 +1,10 @@
 const db = require("../config/db");
 const { getPartnerRequestStatus } = require("../services/chatService");
 const { checkFeatureAccess } = require("../middleware/membershipMiddleware");
+const platformSettingsService = require("../services/platformSettingsService");
 
-const CALL_RATE_PER_MINUTE = 2.00;
-
-function calcCost(durationSeconds) {
-    const cost = (durationSeconds / 60) * CALL_RATE_PER_MINUTE;
+function calcCost(durationSeconds, rate) {
+    const cost = (durationSeconds / 60) * rate;
     return Math.round(cost * 100) / 100;
 }
 
@@ -36,10 +35,11 @@ function validateRoles(callerRole, calleeRole) {
 }
 
 async function checkBalance(userId) {
+    const rate = await platformSettingsService.getCallRate();
     const [rows] = await db.query("SELECT balance FROM users WHERE id = ?", [userId]);
     if (!rows.length) return { sufficient: false };
     const balance = Number(rows[0].balance) || 0;
-    return { sufficient: balance >= CALL_RATE_PER_MINUTE, balance };
+    return { sufficient: balance >= rate, balance };
 }
 
 async function checkCallPermission({ callerId, calleeId, callerRole, calleeRole, onlineUsers, activeCalls }) {
@@ -103,7 +103,8 @@ async function checkCallPermission({ callerId, calleeId, callerRole, calleeRole,
 }
 
 async function chargeForCall(callLogId, callerId, calleeId, durationSeconds) {
-    const totalCost = calcCost(durationSeconds);
+    const rate = await platformSettingsService.getCallRate();
+    const totalCost = calcCost(durationSeconds, rate);
     const callerCost = Math.round((totalCost / 2) * 100) / 100;
     const receiverCost = Math.round((totalCost / 2) * 100) / 100;
 
@@ -194,4 +195,4 @@ async function getFilteredCallHistory({ userId, role, filter, search, page = 1, 
     return { calls: rows, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
-module.exports = { findCallByUserId, isBusy, validateRoles, checkCallPermission, checkBalance, chargeForCall, calcCost, CALL_RATE_PER_MINUTE, getFilteredCallHistory };
+module.exports = { findCallByUserId, isBusy, validateRoles, checkCallPermission, checkBalance, chargeForCall, calcCost, getFilteredCallHistory };

@@ -354,4 +354,46 @@ router.get("/reports",
     }
 );
 
+// ── PLATFORM SETTINGS ─────────────────────────────────────────────────────────
+const platformSettingsService = require("../services/platformSettingsService");
+
+router.get("/platform-settings",
+    authMiddleware,
+    roleMiddleware(["admin"]),
+    async (req, res) => {
+        try {
+            const rates = await platformSettingsService.getCallRates();
+            res.json(rates);
+        } catch (err) {
+            res.status(500).json({ message: err.message || "Failed to fetch platform settings" });
+        }
+    }
+);
+
+router.put("/platform-settings",
+    authMiddleware,
+    roleMiddleware(["admin"]),
+    async (req, res) => {
+        try {
+            const { call_rate_per_minute } = req.body || {};
+            const rate = Number(call_rate_per_minute);
+
+            if (!Number.isFinite(rate) || rate <= 0) {
+                return res.status(400).json({ message: "Call rate must be greater than 0" });
+            }
+            if (rate > 1000) {
+                return res.status(400).json({ message: "Call rate cannot exceed 1000" });
+            }
+
+            const updated = await platformSettingsService.updateCallRate(rate);
+            res.json({
+                call_rate_per_minute: updated,
+                call_rate_per_second: platformSettingsService.perSecond(updated),
+            });
+        } catch (err) {
+            res.status(500).json({ message: err.message || "Failed to update platform settings" });
+        }
+    }
+);
+
 module.exports = router;

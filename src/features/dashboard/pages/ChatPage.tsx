@@ -10,6 +10,7 @@ import { TopNav } from './TopNav';
 import { FeatureGate } from '../../../components/FeatureGate';
 import { CallButton } from '../../call/components/CallButton';
 import { useCallContext } from '../../call/context/callContextValue';
+import { callApi } from '../../call/services/callApi';
 
 
 /* ─── helpers ─── */
@@ -116,9 +117,10 @@ export function ChatPage() {
 
     useEffect(() => {
         (async () => {
-            const res = await userApi.getWallet();
-            if (!res.error && res.data) {
-                setHasBalance(res.data.balance >= 2.00);
+            const [walletRes, rateRes] = await Promise.all([userApi.getWallet(), callApi.getCallRate()]);
+            const minRate = rateRes.data?.call_rate_per_minute ?? 2.00;
+            if (!walletRes.error && walletRes.data) {
+                setHasBalance(walletRes.data.balance >= minRate);
             }
         })();
     }, []);
