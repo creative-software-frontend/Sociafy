@@ -517,7 +517,7 @@ export function ProfilePage() {
                                 <div style={{ color: "var(--red-status)", fontWeight: 700 }}>User not found.</div>
                             ) : (
                                 <>
-                                    {!editMode && (
+                                    {!editMode && auth.user?.role !== 'admin' && (
                                         <div style={{ marginBottom: 18 }}>
                                             <button
                                                 onClick={startEdit}
