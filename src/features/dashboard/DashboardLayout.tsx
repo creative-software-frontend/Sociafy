@@ -114,6 +114,7 @@ const ADMIN_NAV = [
     { to: '', end: true, label: 'HOME', icon: ICONS.home },
     { to: '/users', end: false, label: 'USERS', icon: ICONS.users },
     { to: '/reports', end: false, label: 'REPORTS', icon: ICONS.reports },
+    { to: '/admin-wallet', end: false, label: 'WALLET', icon: ICONS.wallet },
     { to: '/platform-settings', end: false, label: 'RATES', icon: ICONS.settings },
     { to: '/settings', end: false, label: 'SETTINGS', icon: ICONS.settings },
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },

@@ -181,6 +181,13 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: "admin-wallet",
+        lazy: async () => {
+          const { AdminWalletPage } = await import("../features/dashboard/pages/AdminWalletPage");
+          return { element: <AdminWalletPage /> };
+        },
+      },
+      {
         path: "reports",
         lazy: async () => {
           const { default: AdminReportsPage } = await import("../features/dashboard/pages/AdminReportsPage");

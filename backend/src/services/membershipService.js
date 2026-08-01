@@ -160,6 +160,18 @@ async function buyMembership({ userId, packageId }) {
       [userId, -price, `Membership Purchase - ${pkg.tier_type.charAt(0).toUpperCase() + pkg.tier_type.slice(1)} (${fundsField})`]
     );
 
+    // Credit Admin Wallet with the membership price (platform revenue)
+    if (price > 0) {
+      const adminWalletService = require("../services/adminWalletService");
+      await adminWalletService.credit(
+        price,
+        "membership_income",
+        `Membership purchase - ${pkg.name} (user #${userId})`,
+        null,
+        connection
+      );
+    }
+
     await connection.commit();
 
     // Determine message based on hierarchy relationship (DB-driven levels).

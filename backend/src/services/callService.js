@@ -128,6 +128,17 @@ async function chargeForCall(callLogId, callerId, calleeId, durationSeconds) {
         [totalCost, callerCost, receiverCost, callLogId]
     );
 
+    // Credit Admin Wallet with the TOTAL call charge (not split)
+    if (totalCost > 0) {
+        const adminWalletService = require("../services/adminWalletService");
+        await adminWalletService.credit(
+            totalCost,
+            "audio_call_income",
+            `Audio call income (#${callLogId})`,
+            callLogId
+        );
+    }
+
     return { totalCost, callerCost, receiverCost };
 }
 

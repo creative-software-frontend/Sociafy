@@ -966,7 +966,35 @@ export const adminApi = {
             method: 'PATCH',
             body: JSON.stringify({ admin_note: adminNote }),
         }),
+
+    // ── Admin Wallet (platform revenue) ──
+    getAdminWallet: () =>
+        request<{
+            balance: number;
+            totalMembershipIncome: number;
+            totalCallIncome: number;
+            totalWithdrawals: number;
+            transactions: AdminWalletTransaction[];
+        }>('/admin/wallet'),
+
+    getAdminWalletTransactions: () =>
+        request<{ transactions: AdminWalletTransaction[] }>('/admin/wallet/transactions'),
+
+    withdrawAdminWallet: (payload: { amount: number; method: string; trx_id: string }) =>
+        request<{ success: boolean; amount: number }>('/admin/wallet/withdraw', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        }),
 };
+
+export interface AdminWalletTransaction {
+    id: number;
+    type: string;
+    amount: number;
+    description: string | null;
+    reference_id: number | null;
+    created_at: string;
+}
 
 // ── Event endpoints ────────────────────────────────────────────────────────────
 
