@@ -380,6 +380,7 @@ async function normalizePackagesWithFeatures({ packages }) {
       duration_days: pkg.duration_days,
       duration_months: pkg.duration_months,
       tier_type: pkg.tier_type,
+      membership_level: pkg.membership_level != null ? Number(pkg.membership_level) : 1,
       type: pkg.type,
       features: featureMap[pkg.id] || [],
     }
@@ -388,10 +389,10 @@ async function normalizePackagesWithFeatures({ packages }) {
 
 async function getUserPackages() {
   const [packages] = await db.query(
-    `SELECT id, name, description, price, duration_days, duration_months, tier_type, type, is_active, created_at
+    `SELECT id, name, description, price, duration_days, duration_months, tier_type, membership_level, type, is_active, created_at
      FROM packages
      WHERE type = 'user' AND is_active = 1
-     ORDER BY price ASC
+     ORDER BY membership_level ASC, price ASC
   `);
 
   console.log("[DB RESULT USER]", packages);
@@ -400,10 +401,10 @@ async function getUserPackages() {
 
 async function getProviderPackages() {
   const [packages] = await db.query(
-    `SELECT id, name, description, price, duration_days, duration_months, tier_type, type, is_active, created_at
+    `SELECT id, name, description, price, duration_days, duration_months, tier_type, membership_level, type, is_active, created_at
      FROM packages
      WHERE type = 'provider' AND is_active = 1
-     ORDER BY price ASC
+     ORDER BY membership_level ASC, price ASC
   `);
 
   console.log("[DB RESULT PROVIDER]", packages);

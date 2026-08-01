@@ -375,12 +375,11 @@ export function MembershipPage() {
 
 
 
-    // Sort packages: starter (Silver) -> premium (Gold) -> elite (Platinum), then by price ascending
+    // Sort packages by DB-driven membership_level ascending (Silver -> Gold -> Platinum)
     const sortedPackages = [...packages].sort((a, b) => {
-        const order: Record<string, number> = { starter: 0, premium: 1, elite: 2 };
-        const scoreA = order[a.tier_type] ?? 99;
-        const scoreB = order[b.tier_type] ?? 99;
-        if (scoreA !== scoreB) return scoreA - scoreB;
+        const levelA = a.membership_level != null ? Number(a.membership_level) : 99;
+        const levelB = b.membership_level != null ? Number(b.membership_level) : 99;
+        if (levelA !== levelB) return levelA - levelB;
         return Number(a.price) - Number(b.price);
     });
 
