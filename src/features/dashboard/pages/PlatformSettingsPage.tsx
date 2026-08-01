@@ -1,7 +1,20 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { TopNav } from './TopNav';
 import { adminApi } from '../../../utils/api';
 import { useToast } from '../../../components/Toast';
+
+const fadeUp = {
+    hidden: { opacity: 0, y: 12 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+};
+
+const SettingsIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+);
 
 export function PlatformSettingsPage() {
     const toast = useToast();
@@ -53,151 +66,92 @@ export function PlatformSettingsPage() {
         }
     };
 
+    const inputStyle: React.CSSProperties = {
+        width: '100%',
+        background: 'var(--bg-input)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-md)',
+        padding: '12px 14px',
+        color: 'var(--text-primary)',
+        fontSize: '1rem',
+        fontWeight: 600,
+        fontFamily: "'Inter', sans-serif",
+        outline: 'none',
+        boxSizing: 'border-box',
+        transition: 'border-color 0.2s',
+    };
+
     return (
         <>
-            <style>{`@keyframes fadeInPage{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}`}</style>
             <TopNav />
-            <div style={{
-                maxWidth: 480,
-                margin: '0 auto',
-                padding: '20px 16px',
-                animation: 'fadeInPage .3s ease',
-            }}>
-                <h1 style={{
-                    color: '#fff',
-                    fontSize: '1.4rem',
-                    fontWeight: 800,
-                    letterSpacing: '-0.02em',
-                    margin: '0 0 20px',
-                }}>
-                    Platform Settings
-                </h1>
+            <div style={{ maxWidth: 480, margin: '0 auto', padding: '20px 16px 40px' }}>
+                {/* Page header */}
+                <motion.div variants={fadeUp} initial="hidden" animate="show" style={{ marginBottom: 'var(--space-6)', display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-lg)', background: 'linear-gradient(135deg, var(--gold-deep), var(--gold-mid))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-gold)', flexShrink: 0 }}>
+                        <SettingsIcon />
+                    </div>
+                    <div>
+                        <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>Platform Settings</h1>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Configure audio call pricing</p>
+                    </div>
+                </motion.div>
 
-                <div style={{
-                    background: 'var(--bg-card, rgba(255,255,255,0.04))',
-                    border: '1px solid var(--border-default, rgba(255,255,255,0.1))',
-                    borderRadius: 16,
-                    padding: '20px 18px',
-                }}>
-                    <h2 style={{
-                        color: '#fff',
-                        fontSize: '1rem',
-                        fontWeight: 700,
-                        margin: '0 0 4px',
-                    }}>
-                        Audio Call Rate
-                    </h2>
-                    <p style={{
-                        color: 'rgba(255,255,255,0.35)',
-                        fontSize: '0.75rem',
-                        margin: '0 0 16px',
-                    }}>
-                        Cost per minute charged to both user and provider (split equally).
-                    </p>
+                {loading ? (
+                    <motion.div variants={fadeUp} initial="hidden" animate="show" className="card" style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
+                        <div className="spinner" style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--border-subtle)', borderTop: '3px solid var(--gold-mid)', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>Loading settings...</p>
+                    </motion.div>
+                ) : (
+                    <motion.div variants={fadeUp} initial="hidden" animate="show" className="card" style={{ padding: 'var(--space-6)' }}>
+                        {/* Call Rate Per Minute */}
+                        <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--space-1)' }}>Call Rate Per Minute</label>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '0 0 var(--space-4)' }}>
+                            Cost per minute charged to both user &amp; provider (split equally).
+                        </p>
 
-                    <label style={{
-                        display: 'block',
-                        fontSize: '0.6rem',
-                        letterSpacing: '0.18em',
-                        textTransform: 'uppercase',
-                        color: 'rgba(255,255,255,0.4)',
-                        fontWeight: 700,
-                        marginBottom: 6,
-                    }}>
-                        Call Rate Per Minute
-                    </label>
+                        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '1rem', fontWeight: 600 }}>$</span>
+                            <input
+                                type="number"
+                                min="0.01"
+                                max="1000"
+                                step="0.01"
+                                value={rate}
+                                onChange={e => handleRateChange(e.target.value)}
+                                placeholder="2.00"
+                                style={inputStyle}
+                            />
+                            <button
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="btn btn-primary"
+                                style={{ whiteSpace: 'nowrap' }}
+                            >
+                                {saving ? 'Saving…' : 'Save'}
+                            </button>
+                        </div>
 
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16 }}>
-                        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', fontWeight: 600 }}>$</span>
-                        <input
-                            type="number"
-                            min="0.01"
-                            max="1000"
-                            step="0.01"
-                            value={rate}
-                            onChange={e => handleRateChange(e.target.value)}
-                            disabled={loading}
-                            placeholder="2.00"
-                            style={{
+                        {/* Call Rate Per Second (read-only) */}
+                        <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--space-1)' }}>Call Rate Per Second</label>
+                        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '1rem', fontWeight: 600 }}>$</span>
+                            <div style={{
                                 flex: 1,
-                                background: 'var(--bg-input, rgba(255,255,255,0.06))',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: 10,
-                                padding: '11px 14px',
-                                color: '#fff',
+                                background: 'var(--bg-input)',
+                                border: '1px dashed var(--border-default)',
+                                borderRadius: 'var(--radius-md)',
+                                padding: '12px 14px',
+                                color: 'var(--gold-mid)',
                                 fontSize: '1rem',
-                                fontWeight: 600,
-                                fontFamily: "'Inter',sans-serif",
-                                outline: 'none',
-                                boxSizing: 'border-box',
-                            }}
-                        />
-                        <button
-                            onClick={handleSave}
-                            disabled={loading || saving}
-                            style={{
-                                padding: '11px 22px',
-                                borderRadius: 10,
-                                border: 'none',
-                                background: saving ? 'rgba(99,102,241,0.5)' : 'linear-gradient(135deg,#6366f1,#8b5cf6)',
-                                color: '#fff',
                                 fontWeight: 700,
-                                fontSize: '0.85rem',
-                                cursor: saving || loading ? 'default' : 'pointer',
-                                fontFamily: "'Inter',sans-serif",
-                                transition: 'opacity .15s',
+                                fontFamily: "'Inter', sans-serif",
                             }}>
-                            {saving ? 'Saving...' : 'Save'}
-                        </button>
-                    </div>
-
-                    <label style={{
-                        display: 'block',
-                        fontSize: '0.6rem',
-                        letterSpacing: '0.18em',
-                        textTransform: 'uppercase',
-                        color: 'rgba(255,255,255,0.4)',
-                        fontWeight: 700,
-                        marginBottom: 6,
-                    }}>
-                        Call Rate Per Second
-                    </label>
-                    <div style={{
-                        display: 'flex',
-                        gap: 10,
-                        alignItems: 'center',
-                    }}>
-                        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1rem', fontWeight: 600 }}>$</span>
-                        <input
-                            type="text"
-                            value={ratePerSecond}
-                            readOnly
-                            disabled
-                            title="Auto-calculated from the minute rate"
-                            style={{
-                                flex: 1,
-                                background: 'var(--bg-input, rgba(255,255,255,0.03))',
-                                border: '1px dashed rgba(255,255,255,0.08)',
-                                borderRadius: 10,
-                                padding: '11px 14px',
-                                color: 'rgba(255,255,255,0.45)',
-                                fontSize: '1rem',
-                                fontWeight: 600,
-                                fontFamily: "'Inter',sans-serif",
-                                outline: 'none',
-                                boxSizing: 'border-box',
-                                cursor: 'not-allowed',
-                            }}
-                        />
-                        <span style={{
-                            fontSize: '0.65rem',
-                            color: 'rgba(255,255,255,0.25)',
-                            whiteSpace: 'nowrap',
-                        }}>
-                            auto
-                        </span>
-                    </div>
-                </div>
+                                {ratePerSecond}
+                            </div>
+                            <span className="badge badge-gold" style={{ whiteSpace: 'nowrap' }}>Auto</span>
+                        </div>
+                    </motion.div>
+                )}
             </div>
         </>
     );

@@ -1,8 +1,14 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { TopNav } from './TopNav';
 import { adminApi } from '../../../utils/api';
 import type { AdminWalletTransaction } from '../../../utils/api';
 import { useToast } from '../../../components/Toast';
+
+const fadeUp = {
+    hidden: { opacity: 0, y: 12 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+};
 
 interface WalletData {
     balance: number;
@@ -11,6 +17,35 @@ interface WalletData {
     totalWithdrawals: number;
     transactions: AdminWalletTransaction[];
 }
+
+const WalletIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" />
+    </svg>
+);
+
+const icons = {
+    balance: (
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" />
+        </svg>
+    ),
+    membership: (
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01z" />
+        </svg>
+    ),
+    call: (
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+        </svg>
+    ),
+    withdrawn: (
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 17l5-5-5-5" /><path d="M21 12H9" /><path d="M12 21H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h8" />
+        </svg>
+    ),
+};
 
 function fmtMoney(n: number | undefined): string {
     return `$${Number(n || 0).toFixed(2)}`;
@@ -24,14 +59,19 @@ function fmtDate(d: string): string {
     return t.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function typeLabel(type: string): string {
-    const map: Record<string, string> = {
-        membership_income: 'Membership Income',
-        audio_call_income: 'Call Income',
-        manual_adjustment: 'Manual Adjustment',
-        withdraw: 'Withdraw',
-    };
-    return map[type] || type;
+function typeInfo(type: string): { label: string; bg: string; color: string; border: string } {
+    switch (type) {
+        case 'membership_income':
+            return { label: 'Membership', bg: 'var(--gold-glow)', color: 'var(--gold-mid)', border: 'var(--gold-border)' };
+        case 'audio_call_income':
+            return { label: 'Call Income', bg: 'var(--blue-glow)', color: 'var(--blue-vivid)', border: 'rgba(59,130,246,0.3)' };
+        case 'withdraw':
+            return { label: 'Withdraw', bg: 'rgba(239,68,68,0.1)', color: 'var(--red-status)', border: 'rgba(239,68,68,0.3)' };
+        case 'manual_adjustment':
+            return { label: 'Adjustment', bg: 'rgba(16,185,129,0.1)', color: 'var(--green-status)', border: 'rgba(16,185,129,0.3)' };
+        default:
+            return { label: type, bg: 'var(--bg-input)', color: 'var(--text-secondary)', border: 'var(--border-subtle)' };
+    }
 }
 
 export function AdminWalletPage() {
@@ -64,11 +104,7 @@ export function AdminWalletPage() {
             return;
         }
         setSubmitting(true);
-        const res = await adminApi.withdrawAdminWallet({
-            amount: value,
-            method,
-            trx_id: trxId.trim(),
-        });
+        const res = await adminApi.withdrawAdminWallet({ amount: value, method, trx_id: trxId.trim() });
         setSubmitting(false);
         if (!res.error && res.data) {
             toast.success('Withdrawal successful.');
@@ -81,165 +117,145 @@ export function AdminWalletPage() {
         }
     };
 
+    const inputStyle: React.CSSProperties = {
+        width: '100%',
+        background: 'var(--bg-input)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-md)',
+        padding: '12px 14px',
+        color: 'var(--text-primary)',
+        fontSize: '0.9rem',
+        fontFamily: "'Inter', sans-serif",
+        outline: 'none',
+        boxSizing: 'border-box',
+        transition: 'border-color 0.2s',
+    };
+
+    const statCards = data ? [
+        { label: 'Wallet Balance', value: fmtMoney(data.balance), color: 'var(--gold-mid)', icon: icons.balance },
+        { label: 'Membership Income', value: fmtMoney(data.totalMembershipIncome), color: 'var(--green-status)', icon: icons.membership },
+        { label: 'Call Income', value: fmtMoney(data.totalCallIncome), color: 'var(--blue-vivid)', icon: icons.call },
+        { label: 'Total Withdrawals', value: fmtMoney(data.totalWithdrawals), color: 'var(--red-status)', icon: icons.withdrawn },
+    ] : [];
+
     return (
         <>
-            <style>{`@keyframes fadeInPage{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}`}</style>
             <TopNav />
-            <div style={{ maxWidth: 480, margin: '0 auto', padding: '20px 16px', animation: 'fadeInPage .3s ease' }}>
-                <h1 style={{ color: '#fff', fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.02em', margin: '0 0 20px' }}>
-                    Admin Wallet
-                </h1>
-
-                {/* Summary card */}
-                <div style={{
-                    background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15))',
-                    border: '1px solid rgba(99,102,241,0.25)',
-                    borderRadius: 16,
-                    padding: '20px 18px',
-                    marginBottom: 16,
-                }}>
-                    <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', margin: '0 0 6px' }}>
-                        CURRENT BALANCE
-                    </p>
-                    <h2 style={{ color: '#fff', fontSize: '2rem', fontWeight: 800, margin: '0 0 16px', letterSpacing: '-0.02em' }}>
-                        {fmtMoney(data?.balance)}
-                    </h2>
-                    <div style={{ display: 'flex', gap: 16 }}>
-                        <div style={{ flex: 1 }}>
-                            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', margin: '0 0 2px' }}>MEMBERSHIP INCOME</p>
-                            <p style={{ color: '#22c55e', fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>{fmtMoney(data?.totalMembershipIncome)}</p>
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', margin: '0 0 2px' }}>CALL INCOME</p>
-                            <p style={{ color: '#6366f1', fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>{fmtMoney(data?.totalCallIncome)}</p>
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem', margin: '0 0 2px' }}>WITHDRAWN</p>
-                            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>{fmtMoney(data?.totalWithdrawals)}</p>
-                        </div>
+            <div style={{ maxWidth: 480, margin: '0 auto', padding: '20px 16px 40px' }}>
+                {/* Page header */}
+                <motion.div variants={fadeUp} initial="hidden" animate="show" style={{ marginBottom: 'var(--space-6)', display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-lg)', background: 'linear-gradient(135deg, var(--gold-deep), var(--gold-mid))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-gold)', flexShrink: 0 }}>
+                        <WalletIcon />
                     </div>
-                </div>
-
-                {/* Withdraw */}
-                <button
-                    onClick={() => setShowWithdraw(v => !v)}
-                    style={{
-                        width: '100%',
-                        padding: '14px',
-                        borderRadius: 12,
-                        border: '1px solid rgba(239,68,68,0.3)',
-                        background: 'rgba(239,68,68,0.08)',
-                        color: '#ef4444',
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
-                        cursor: 'pointer',
-                        fontFamily: "'Inter',sans-serif",
-                        marginBottom: showWithdraw ? 12 : 20,
-                    }}>
-                    {showWithdraw ? 'Cancel Withdraw' : 'Withdraw Funds'}
-                </button>
-
-                {showWithdraw && (
-                    <div style={{
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: 16,
-                        padding: '18px',
-                        marginBottom: 20,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 12,
-                    }}>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.6rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 700, marginBottom: 6 }}>
-                                Amount
-                            </label>
-                            <input
-                                type="number" min="0.01" step="0.01" value={amount}
-                                onChange={e => setAmount(e.target.value)}
-                                placeholder="0.00"
-                                style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '11px 14px', color: '#fff', fontSize: '0.95rem', fontFamily: "'Inter',sans-serif", outline: 'none' }}
-                            />
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.6rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 700, marginBottom: 6 }}>
-                                Method
-                            </label>
-                            <select
-                                value={method} onChange={e => setMethod(e.target.value)}
-                                style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '11px 14px', color: '#fff', fontSize: '0.95rem', fontFamily: "'Inter',sans-serif", outline: 'none' }}>
-                                <option value="bKash">bKash</option>
-                                <option value="Nagad">Nagad</option>
-                                <option value="bank">Bank Transfer</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.6rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 700, marginBottom: 6 }}>
-                                Transaction ID
-                            </label>
-                            <input
-                                type="text" value={trxId} onChange={e => setTrxId(e.target.value)}
-                                placeholder="e.g. 8M3XK2A9LQ"
-                                style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '11px 14px', color: '#fff', fontSize: '0.95rem', fontFamily: "'Inter',sans-serif", outline: 'none' }}
-                            />
-                        </div>
-                        <button
-                            onClick={handleWithdraw}
-                            disabled={submitting}
-                            style={{
-                                padding: '13px',
-                                borderRadius: 10,
-                                border: 'none',
-                                background: submitting ? 'rgba(239,68,68,0.5)' : '#ef4444',
-                                color: '#fff',
-                                fontWeight: 700,
-                                fontSize: '0.9rem',
-                                cursor: submitting ? 'default' : 'pointer',
-                                fontFamily: "'Inter',sans-serif",
-                            }}>
-                            {submitting ? 'Processing...' : 'Confirm Withdraw'}
-                        </button>
+                    <div>
+                        <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>Admin Wallet</h1>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Platform revenue &amp; withdrawals</p>
                     </div>
-                )}
+                </motion.div>
 
-                {/* Transaction history */}
-                <h2 style={{ color: '#fff', fontSize: '1rem', fontWeight: 700, margin: '0 0 10px' }}>
-                    Transaction History
-                </h2>
-                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, overflow: 'hidden' }}>
-                    {loading ? (
-                        <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>Loading...</div>
-                    ) : !data || data.transactions.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>No transactions yet</div>
-                    ) : (
-                        data.transactions.map(tx => {
-                            const isCredit = tx.amount > 0;
-                            return (
-                                <div key={tx.id} style={{
-                                    display: 'flex', alignItems: 'center', gap: 12,
-                                    padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)',
-                                }}>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <p style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 600, margin: '0 0 3px' }}>
-                                            {typeLabel(tx.type)}
-                                        </p>
-                                        <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            {tx.description || '—'}
-                                        </p>
-                                    </div>
-                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                        <p style={{ color: isCredit ? '#22c55e' : '#ef4444', fontSize: '0.85rem', fontWeight: 700, margin: '0 0 3px' }}>
-                                            {isCredit ? '+' : ''}{fmtMoney(tx.amount)}
-                                        </p>
-                                        <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.65rem', margin: 0 }}>
-                                            {fmtDate(tx.created_at)}
-                                        </p>
-                                    </div>
+                {loading && !data ? (
+                    <motion.div variants={fadeUp} initial="hidden" animate="show" className="card" style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
+                        <div className="spinner" style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid var(--border-subtle)', borderTop: '3px solid var(--gold-mid)', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>Loading wallet...</p>
+                    </motion.div>
+                ) : (
+                    <>
+                        {/* Summary stat cards */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+                            {statCards.map((card) => (
+                                <motion.div variants={fadeUp} initial="hidden" animate="show" key={card.label} className="card" style={{ padding: 'var(--space-5) var(--space-4)' }}>
+                                    <div style={{ fontSize: '1.5rem', marginBottom: 'var(--space-2)', color: card.color }}>{card.icon}</div>
+                                    <div className="eyebrow" style={{ marginBottom: 'var(--space-1)' }}>{card.label}</div>
+                                    <div style={{ fontSize: '1.25rem', fontWeight: 600, color: card.color }}>{card.value}</div>
+                                </motion.div>
+                            ))}
+                        </div>
+
+                        {/* Withdraw */}
+                        <motion.div variants={fadeUp} initial="hidden" animate="show" className="card" style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-5)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showWithdraw ? 'var(--space-4)' : 0 }}>
+                                <div>
+                                    <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>Withdraw Funds</h2>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Transfer platform revenue out</p>
                                 </div>
-                            );
-                        })
-                    )}
-                </div>
+                                <button
+                                    onClick={() => setShowWithdraw(v => !v)}
+                                    className={`btn btn-sm ${showWithdraw ? 'btn-ghost' : 'btn-outline'}`}
+                                >
+                                    {showWithdraw ? 'Cancel' : 'Withdraw'}
+                                </button>
+                            </div>
+
+                            {showWithdraw && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-4)' }}>
+                                    <div>
+                                        <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--space-1)' }}>Amount</label>
+                                        <input type="number" min="0.01" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={inputStyle} />
+                                    </div>
+                                    <div>
+                                        <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--space-1)' }}>Method</label>
+                                        <select value={method} onChange={e => setMethod(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                                            <option value="bKash">bKash</option>
+                                            <option value="Nagad">Nagad</option>
+                                            <option value="bank">Bank Transfer</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--space-1)' }}>Transaction ID</label>
+                                        <input type="text" value={trxId} onChange={e => setTrxId(e.target.value)} placeholder="e.g. 8M3XK2A9LQ" style={inputStyle} />
+                                    </div>
+                                    <button onClick={handleWithdraw} disabled={submitting} className="btn btn-primary" style={{ alignSelf: 'flex-end' }}>
+                                        {submitting ? 'Processing…' : 'Confirm Withdraw'}
+                                    </button>
+                                </div>
+                            )}
+                        </motion.div>
+
+                        {/* Transaction history */}
+                        <motion.div variants={fadeUp} initial="hidden" animate="show" className="card" style={{ padding: 'var(--space-6)' }}>
+                            <h2 style={{ margin: '0 0 var(--space-4)', fontSize: '1.125rem', fontWeight: 500, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+                                Transaction History
+                            </h2>
+
+                            {data!.transactions.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: 'var(--space-6) 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                    No transactions yet
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    {data!.transactions.map(tx => {
+                                        const info = typeInfo(tx.type);
+                                        const isCredit = tx.amount > 0;
+                                        return (
+                                            <div key={tx.id} style={{
+                                                display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+                                                padding: 'var(--space-3) 0', borderBottom: '1px solid var(--border-subtle)',
+                                            }}>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                                                        <span className="badge" style={{ background: info.bg, color: info.color, borderColor: info.border, fontWeight: 800 }}>
+                                                            {info.label}
+                                                        </span>
+                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>{fmtDate(tx.created_at)}</span>
+                                                    </div>
+                                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: '4px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                        {tx.description || '—'}
+                                                    </p>
+                                                </div>
+                                                <span style={{
+                                                    fontSize: '0.95rem', fontWeight: 700, whiteSpace: 'nowrap',
+                                                    color: isCredit ? 'var(--green-status)' : 'var(--red-status)',
+                                                }}>
+                                                    {isCredit ? '+' : ''}{fmtMoney(tx.amount)}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </motion.div>
+                    </>
+                )}
             </div>
         </>
     );
