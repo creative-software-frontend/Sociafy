@@ -16,6 +16,22 @@ export type CallDirection = 'incoming' | 'outgoing' | null;
 
 export type CallType = 'audio' | 'video';
 
+export type CallQuality = 'excellent' | 'good' | 'poor' | null;
+
+export interface CallStats {
+    bitrate: number;
+    packetLoss: number;
+    rtt: number;
+    jitter: number;
+    quality: Exclude<CallQuality, null>;
+}
+
+export interface CallQualityState {
+    quality: CallQuality;
+    isReconnecting: boolean;
+    connectionLost: boolean;
+}
+
 export interface CallState {
     status: CallStatus;
     direction: CallDirection;

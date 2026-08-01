@@ -1,24 +1,38 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { Socket } from 'socket.io-client';
-import type { CallAction, CallState } from '../types/call';
+import type { CallAction, CallState, CallStats, CallQuality } from '../types/call';
 
 interface WebRTCActions {
     pcRef: React.MutableRefObject<RTCPeerConnection | null>;
     localStreamRef: React.MutableRefObject<MediaStream | null>;
     startMedia: () => Promise<MediaStream>;
+    replaceStream: () => Promise<MediaStream | null>;
     createOffer: (
         onIce: (c: RTCIceCandidate) => void,
         onConnectionStateChange?: (state: string) => void,
+        onIceConnectionStateChange?: (state: string) => void,
     ) => Promise<RTCSessionDescriptionInit>;
     createAnswer: (
         offer: RTCSessionDescriptionInit,
         onIce: (c: RTCIceCandidate) => void,
         onConnectionStateChange?: (state: string) => void,
+        onIceConnectionStateChange?: (state: string) => void,
     ) => Promise<RTCSessionDescriptionInit>;
     setRemoteSDP: (sdp: RTCSessionDescriptionInit) => Promise<void>;
     addIceCandidate: (c: RTCIceCandidateInit) => Promise<void>;
+    restartIce: () => void;
     toggleMute: () => boolean;
+    startStatsMonitor: (cb: (stats: CallStats) => void, interval?: number) => void;
+    stopStatsMonitor: () => void;
+    registerDeviceChange: (cb: () => void) => void;
+    unregisterDeviceChange: () => void;
     cleanup: () => void;
+}
+
+interface QualityCallbacks {
+    onQuality: (quality: CallQuality) => void;
+    onReconnect: (reconnecting: boolean) => void;
+    onConnectionLost: (lost: boolean) => void;
 }
 
 function onWebRTCStateChange(state: string, dispatch: React.Dispatch<CallAction>) {
@@ -29,8 +43,16 @@ function onWebRTCStateChange(state: string, dispatch: React.Dispatch<CallAction>
     }
 }
 
-export function useCallManager(socket: Socket | null, dispatch: React.Dispatch<CallAction>, webRTC: WebRTCActions) {
+export function useCallManager(
+    socket: Socket | null,
+    dispatch: React.Dispatch<CallAction>,
+    webRTC: WebRTCActions,
+    qualityCb: QualityCallbacks,
+) {
     const stateRef = useRef<CallState | null>(null);
+    const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const reconnectingRef = useRef(false);
 
     const emit = useCallback((event: string, data: unknown) => {
         socket?.emit(event, data);
@@ -39,6 +61,15 @@ export function useCallManager(socket: Socket | null, dispatch: React.Dispatch<C
     const getIceCandidateSender = useCallback((targetId: number) => (candidate: RTCIceCandidate) => {
         emit('call:ice-candidate', { target_id: targetId, candidate: candidate.toJSON() });
     }, [emit]);
+
+    const clearConnectTimeout = useCallback(() => {
+        if (connectTimeoutRef.current) { clearTimeout(connectTimeoutRef.current); connectTimeoutRef.current = null; }
+    }, []);
+
+    const startConnectTimeout = useCallback((cb: () => void, ms = 30000) => {
+        clearConnectTimeout();
+        connectTimeoutRef.current = setTimeout(cb, ms);
+    }, [clearConnectTimeout]);
 
     const startCall = useCallback(async (peerId: number, peerName: string) => {
         if (!socket) {
@@ -55,8 +86,8 @@ export function useCallManager(socket: Socket | null, dispatch: React.Dispatch<C
             await webRTC.startMedia();
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Microphone access denied';
-            if (msg.toLowerCase().includes('permission')) {
-                dispatch({ type: 'SET_ERROR', payload: { message: 'Microphone permission required. Please allow mic access in your browser settings.' } });
+            if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('denied') || msg.toLowerCase().includes('notallowed')) {
+                dispatch({ type: 'SET_ERROR', payload: { message: 'Microphone permission is blocked. Please enable microphone access in your browser settings.' } });
             } else {
                 dispatch({ type: 'SET_ERROR', payload: { message: msg } });
             }
@@ -77,7 +108,11 @@ export function useCallManager(socket: Socket | null, dispatch: React.Dispatch<C
             emit('call:accept', { caller_id: stateRef.current.peerId });
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Microphone access denied';
-            dispatch({ type: 'SET_ERROR', payload: { message: msg } });
+            if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('denied') || msg.toLowerCase().includes('notallowed')) {
+                dispatch({ type: 'SET_ERROR', payload: { message: 'Microphone permission is blocked. Please enable microphone access in your browser settings.' } });
+            } else {
+                dispatch({ type: 'SET_ERROR', payload: { message: msg } });
+            }
             webRTC.cleanup();
             setTimeout(() => dispatch({ type: 'RESET' }), 2000);
         }
@@ -95,19 +130,76 @@ export function useCallManager(socket: Socket | null, dispatch: React.Dispatch<C
         if (!socket) return;
         const peerId = stateRef.current?.peerId;
         if (peerId) emit('call:end', { target_id: peerId });
+        webRTC.stopStatsMonitor();
+        webRTC.unregisterDeviceChange();
         webRTC.cleanup();
+        if (reconnectTimerRef.current) { clearTimeout(reconnectTimerRef.current); reconnectTimerRef.current = null; }
+        clearConnectTimeout();
+        reconnectingRef.current = false;
+        qualityCb.onReconnect(false);
+        qualityCb.onConnectionLost(false);
         dispatch({ type: 'SET_ENDED' });
-        setTimeout(() => dispatch({ type: 'RESET' }), 2000);
-    }, [socket, dispatch, webRTC, emit]);
+        setTimeout(() => dispatch({ type: 'RESET' }), 1000);
+    }, [socket, dispatch, webRTC, clearConnectTimeout, qualityCb]);
 
     const cancelCall = useCallback(() => {
         if (!socket) return;
         const peerId = stateRef.current?.peerId;
         if (peerId) emit('call:cancel', { receiver_id: peerId });
+        webRTC.stopStatsMonitor();
+        webRTC.unregisterDeviceChange();
         webRTC.cleanup();
+        if (reconnectTimerRef.current) { clearTimeout(reconnectTimerRef.current); reconnectTimerRef.current = null; }
+        clearConnectTimeout();
+        reconnectingRef.current = false;
+        qualityCb.onReconnect(false);
         dispatch({ type: 'SET_CANCELLED' });
         setTimeout(() => dispatch({ type: 'RESET' }), 2000);
-    }, [socket, dispatch, webRTC, emit]);
+    }, [socket, dispatch, webRTC, clearConnectTimeout, qualityCb]);
+
+    const handleIceConnectionChange = useCallback((state: string) => {
+        if (state === 'disconnected' && stateRef.current?.status === 'connected') {
+            reconnectingRef.current = true;
+            qualityCb.onReconnect(true);
+            // Start 15s reconnect timer
+            if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = setTimeout(() => {
+                // Reconnection failed — end gracefully
+                if (reconnectingRef.current) {
+                    reconnectingRef.current = false;
+                    qualityCb.onReconnect(false);
+                    qualityCb.onConnectionLost(true);
+                    endCall();
+                }
+            }, 15000);
+            webRTC.restartIce();
+        } else if (state === 'connected' || state === 'completed') {
+            if (reconnectingRef.current) {
+                reconnectingRef.current = false;
+                if (reconnectTimerRef.current) { clearTimeout(reconnectTimerRef.current); reconnectTimerRef.current = null; }
+                qualityCb.onReconnect(false);
+                qualityCb.onConnectionLost(false);
+            }
+            clearConnectTimeout();
+            dispatch({ type: 'SET_CONNECTED' });
+        } else if (state === 'failed') {
+            if (reconnectingRef.current) {
+                reconnectingRef.current = false;
+                if (reconnectTimerRef.current) { clearTimeout(reconnectTimerRef.current); reconnectTimerRef.current = null; }
+                qualityCb.onReconnect(false);
+                qualityCb.onConnectionLost(true);
+            }
+            endCall();
+        }
+    }, [qualityCb, webRTC, clearConnectTimeout, dispatch, endCall]);
+
+    // Clean up timers on unmount
+    useEffect(() => {
+        return () => {
+            if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+            clearConnectTimeout();
+        };
+    }, [clearConnectTimeout]);
 
     useEffect(() => {
         if (!socket) return;
@@ -131,7 +223,11 @@ export function useCallManager(socket: Socket | null, dispatch: React.Dispatch<C
             try {
                 const targetId = stateRef.current?.peerId ?? 0;
                 const onConnChange = (s: string) => onWebRTCStateChange(s, dispatch);
-                const offer = await webRTC.createOffer(getIceCandidateSender(targetId), onConnChange);
+                const offer = await webRTC.createOffer(getIceCandidateSender(targetId), onConnChange, handleIceConnectionChange);
+                // Start connection timeout — must connect within 30s
+                startConnectTimeout(() => {
+                    endCall();
+                });
                 emit('call:offer', { receiver_id: stateRef.current?.peerId, sdp: offer });
             } catch (err: unknown) {
                 const msg = err instanceof Error ? err.message : 'Failed to create offer';
@@ -148,7 +244,10 @@ export function useCallManager(socket: Socket | null, dispatch: React.Dispatch<C
             try {
                 const targetId = currentState.peerId ?? 0;
                 const onConnChange = (s: string) => onWebRTCStateChange(s, dispatch);
-                const answer = await webRTC.createAnswer(data.sdp, getIceCandidateSender(targetId), onConnChange);
+                const answer = await webRTC.createAnswer(data.sdp, getIceCandidateSender(targetId), onConnChange, handleIceConnectionChange);
+                startConnectTimeout(() => {
+                    endCall();
+                });
                 emit('call:answer', { caller_id: currentState.peerId, sdp: answer });
             } catch (err: unknown) {
                 const msg = err instanceof Error ? err.message : 'Failed to create answer';
@@ -173,7 +272,14 @@ export function useCallManager(socket: Socket | null, dispatch: React.Dispatch<C
         };
 
         const onEnded = (data: { reason?: string }) => {
+            webRTC.stopStatsMonitor();
+            webRTC.unregisterDeviceChange();
             webRTC.cleanup();
+            if (reconnectTimerRef.current) { clearTimeout(reconnectTimerRef.current); reconnectTimerRef.current = null; }
+            clearConnectTimeout();
+            reconnectingRef.current = false;
+            qualityCb.onReconnect(false);
+            qualityCb.onConnectionLost(false);
             if (data.reason === 'missed') {
                 dispatch({ type: 'SET_MISSED' });
             } else {
@@ -183,25 +289,49 @@ export function useCallManager(socket: Socket | null, dispatch: React.Dispatch<C
         };
 
         const onRejected = () => {
+            webRTC.stopStatsMonitor();
+            webRTC.unregisterDeviceChange();
             webRTC.cleanup();
+            if (reconnectTimerRef.current) { clearTimeout(reconnectTimerRef.current); reconnectTimerRef.current = null; }
+            clearConnectTimeout();
+            reconnectingRef.current = false;
+            qualityCb.onReconnect(false);
             dispatch({ type: 'SET_REJECTED' });
             setTimeout(() => dispatch({ type: 'RESET' }), 2000);
         };
 
         const onBusy = () => {
+            webRTC.stopStatsMonitor();
+            webRTC.unregisterDeviceChange();
             webRTC.cleanup();
+            if (reconnectTimerRef.current) { clearTimeout(reconnectTimerRef.current); reconnectTimerRef.current = null; }
+            clearConnectTimeout();
+            reconnectingRef.current = false;
+            qualityCb.onReconnect(false);
             dispatch({ type: 'SET_BUSY' });
             setTimeout(() => dispatch({ type: 'RESET' }), 2000);
         };
 
         const onCancelled = () => {
+            webRTC.stopStatsMonitor();
+            webRTC.unregisterDeviceChange();
             webRTC.cleanup();
+            if (reconnectTimerRef.current) { clearTimeout(reconnectTimerRef.current); reconnectTimerRef.current = null; }
+            clearConnectTimeout();
+            reconnectingRef.current = false;
+            qualityCb.onReconnect(false);
             dispatch({ type: 'SET_CANCELLED' });
             setTimeout(() => dispatch({ type: 'RESET' }), 2000);
         };
 
         const onError = (data: { message: string }) => {
+            webRTC.stopStatsMonitor();
+            webRTC.unregisterDeviceChange();
             webRTC.cleanup();
+            if (reconnectTimerRef.current) { clearTimeout(reconnectTimerRef.current); reconnectTimerRef.current = null; }
+            clearConnectTimeout();
+            reconnectingRef.current = false;
+            qualityCb.onReconnect(false);
             dispatch({ type: 'SET_ERROR', payload: { message: data.message } });
             setTimeout(() => dispatch({ type: 'RESET' }), 3000);
         };
@@ -229,7 +359,7 @@ export function useCallManager(socket: Socket | null, dispatch: React.Dispatch<C
             socket.off('call:cancelled', onCancelled);
             socket.off('call:error', onError);
         };
-    }, [socket, dispatch, webRTC, emit, getIceCandidateSender]);
+    }, [socket, dispatch, webRTC, emit, getIceCandidateSender, handleIceConnectionChange, startConnectTimeout, clearConnectTimeout, endCall, qualityCb]);
 
     return { startCall, acceptCall, rejectCall, endCall, cancelCall, setStateRef: (s: CallState) => { stateRef.current = s; } };
 }

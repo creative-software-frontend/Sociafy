@@ -44,7 +44,7 @@ function StatusLabel({ status, error }: { status: string; error?: string | null 
 const CALL_BG = 'radial-gradient(ellipse at 50% 0%, #0f1629 0%, #080d1a 60%, #040810 100%)';
 
 export function CallUI() {
-    const { callState, peerStream, toggleMute, toggleSpeaker, endCall, cancelCall, isMuted, isSpeakerOn } = useCallContext();
+    const { callState, peerStream, toggleMute, toggleSpeaker, endCall, cancelCall, isMuted, isSpeakerOn, connectionQuality, isReconnecting, connectionLost } = useCallContext();
     const { user } = useAuth();
     const audioRef = useRef<HTMLAudioElement>(null);
     const startedAtRef = useRef<number | null>(null);
@@ -199,14 +199,33 @@ export function CallUI() {
                             }} />
                         ))}
                     </div>
-                ) : callState.status === 'connected' || callState.status === 'ended' ? (
-                    <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                ) : callState.status === 'connected' ? (
+                    <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                         <CallTimer startedAt={startedAtRef.current} />
-                        {callState.status === 'ended' && (
-                            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', fontWeight: 500 }}>
-                                Call Ended
+                        {connectionLost ? (
+                            <span style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 600 }}>
+                                Connection Lost
+                            </span>
+                        ) : isReconnecting ? (
+                            <span style={{ color: '#f59e0b', fontSize: '0.8rem', fontWeight: 600 }}>
+                                Reconnecting...
+                            </span>
+                        ) : connectionQuality === 'poor' ? (
+                            <span style={{ color: '#f59e0b', fontSize: '0.8rem', fontWeight: 600 }}>
+                                Poor Connection
+                            </span>
+                        ) : (
+                            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.75rem', fontWeight: 500 }}>
+                                {connectionQuality === 'excellent' ? '● Excellent' : connectionQuality === 'good' ? '● Good' : ''}
                             </span>
                         )}
+                    </div>
+                ) : callState.status === 'ended' ? (
+                    <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                        <CallTimer startedAt={startedAtRef.current} />
+                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem', fontWeight: 500 }}>
+                            Call Ended
+                        </span>
                     </div>
                 ) : (
                     <StatusLabel status={callState.status} error={callState.error} />

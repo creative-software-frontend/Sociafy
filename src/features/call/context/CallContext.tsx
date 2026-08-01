@@ -5,6 +5,7 @@ import { useCallManager } from '../hooks/useCallManager';
 import { useCallAudio } from '../hooks/useCallAudio';
 import { callReducer, INITIAL_CALL_STATE } from '../types/call';
 import { CallContext } from './callContextValue';
+import type { CallQuality, CallStats } from '../types/call';
 import { IncomingCallOverlay } from '../components/IncomingCallOverlay';
 import { CallUI } from '../components/CallUI';
 
@@ -13,10 +14,18 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isMuted, setIsMuted] = useState(false);
     const [isSpeakerOn, setIsSpeakerOn] = useState(false);
     const [socket, setSocket] = useState<Socket | null>(null);
+    const [connectionQuality, setConnectionQuality] = useState<CallQuality>(null);
+    const [isReconnecting, setIsReconnecting] = useState(false);
+    const [connectionLost, setConnectionLost] = useState(false);
+    const [lastStats, setLastStats] = useState<CallStats | null>(null);
 
     const webRTC = useWebRTC();
 
-    const manager = useCallManager(socket, dispatch, webRTC);
+    const onQuality = useCallback((quality: CallQuality) => setConnectionQuality(quality), []);
+    const onReconnect = useCallback((reconnecting: boolean) => setIsReconnecting(reconnecting), []);
+    const onConnectionLost = useCallback((lost: boolean) => setConnectionLost(lost), []);
+
+    const manager = useCallManager(socket, dispatch, webRTC, { onQuality, onReconnect, onConnectionLost });
     useCallAudio(callState.status, callState.direction);
 
     useEffect(() => {
@@ -39,6 +48,31 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         manager.setStateRef(callState);
     }, [callState, manager]);
+
+    // Start stats monitor + device change when connected
+    useEffect(() => {
+        if (callState.status === 'connected') {
+            setConnectionQuality(null);
+            setIsReconnecting(false);
+            setConnectionLost(false);
+            webRTC.startStatsMonitor((stats) => {
+                setLastStats(stats);
+                setConnectionQuality(stats.quality);
+            });
+            webRTC.registerDeviceChange(() => {
+                // Notify by toggling reconnect indicator briefly
+                setIsReconnecting(true);
+                setTimeout(() => setIsReconnecting(false), 3000);
+            });
+        } else if (callState.status === 'idle' || ['ended', 'busy', 'rejected', 'cancelled', 'missed', 'error'].includes(callState.status)) {
+            webRTC.stopStatsMonitor();
+            webRTC.unregisterDeviceChange();
+            setConnectionQuality(null);
+            setIsReconnecting(false);
+            setConnectionLost(false);
+            setLastStats(null);
+        }
+    }, [callState.status, webRTC]);
 
     const toggleMute = useCallback(() => {
         const muted = !webRTC.toggleMute();
@@ -79,6 +113,10 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 peerStream: webRTC.peerStream,
                 isMuted,
                 isSpeakerOn,
+                connectionQuality,
+                isReconnecting,
+                connectionLost,
+                lastStats,
                 startCall,
                 acceptCall,
                 rejectCall,

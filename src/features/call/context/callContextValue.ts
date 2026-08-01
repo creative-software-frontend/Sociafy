@@ -1,11 +1,15 @@
 import { createContext, useContext } from 'react';
-import type { CallState } from '../types/call';
+import type { CallState, CallQuality, CallStats } from '../types/call';
 
 export interface CallContextProps {
     callState: CallState;
     peerStream: MediaStream | null;
     isMuted: boolean;
     isSpeakerOn: boolean;
+    connectionQuality: CallQuality;
+    isReconnecting: boolean;
+    connectionLost: boolean;
+    lastStats: CallStats | null;
     startCall: (peerId: number, peerName: string) => Promise<void>;
     acceptCall: () => void;
     rejectCall: () => void;
