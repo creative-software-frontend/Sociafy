@@ -18,6 +18,8 @@ const typeLabel: Record<string, { label: string; color: string; bg: string }> = 
     earning: { label: 'Earning', color: 'var(--blue-vivid)', bg: 'rgba(59,130,246,0.1)' },
     event_payment: { label: 'Event Payment', color: 'var(--red-status)', bg: 'rgba(239,68,68,0.1)' },
     event_income: { label: 'Event Income', color: 'var(--blue-vivid)', bg: 'rgba(59,130,246,0.1)' },
+    membership_purchase: { label: 'Membership', color: 'var(--gold-mid)', bg: 'rgba(197,168,128,0.1)' },
+    audio_call: { label: 'Audio Call', color: 'var(--blue-vivid)', bg: 'rgba(59,130,246,0.1)' },
 };
 
 const fadeUp = {
@@ -136,8 +138,6 @@ const icons = {
     ),
 };
 
-const PAGE_SIZE = 20;
-
 type PendingWalletRequest = {
     id: number;
     user_id: number;
@@ -162,9 +162,9 @@ export default function AdminReportsPage() {
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [ledgerFilter, setLedgerFilter] = useState<'all' | 'deposit' | 'withdraw' | 'earning' | 'event_payment' | 'event_income'>('all');
+    const [ledgerFilter, setLedgerFilter] = useState<'all' | 'deposit' | 'withdraw' | 'earning' | 'event_payment' | 'event_income' | 'membership_purchase' | 'audio_call'>('all');
     const [search, setSearch] = useState('');
-    const [page, setPage] = useState(1);
+    const [visibleCount, setVisibleCount] = useState(6);
     const [pendingRequests, setPendingRequests] = useState<{ deposits: PendingWalletRequest[]; withdrawals: PendingWalletRequest[] }>({ deposits: [], withdrawals: [] });
     const [pendingLoading, setPendingLoading] = useState(false);
     const [pendingMessage, setPendingMessage] = useState('');
@@ -216,8 +216,7 @@ export default function AdminReportsPage() {
         });
     }, [data, ledgerFilter, search]);
 
-    const totalPages = Math.ceil(filteredLedger.length / PAGE_SIZE);
-    const pagedLedger = filteredLedger.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    const visibleLedger = filteredLedger.slice(0, visibleCount);
 
     const handlePendingAction = async (type: 'deposit' | 'withdraw', id: number, action: 'approve' | 'reject') => {
         setPendingMessage('');
@@ -238,7 +237,7 @@ export default function AdminReportsPage() {
 
     const handleFilterChange = (f: typeof ledgerFilter) => {
         setLedgerFilter(f);
-        setPage(1);
+        setVisibleCount(6);
     };
 
     const buildScreenshotUrl = useCallback((screenshotUrl?: string) => {
@@ -473,16 +472,27 @@ export default function AdminReportsPage() {
                     {/* Search */}
                     <input
                         value={search}
-                        onChange={e => { setSearch(e.target.value); setPage(1); }}
+                        onChange={e => { setSearch(e.target.value); setVisibleCount(6); }}
                         placeholder="Search user, role, note…"
                         style={{
                             maxWidth: 220,
+                            width: '100%',
+                            background: 'var(--bg-input)',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: 'var(--radius-md)',
+                            padding: '9px 12px',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.8rem',
+                            fontFamily: "'Inter', sans-serif",
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                            transition: 'border-color 0.2s',
                         }}
                     />
 
                     {/* Type Filter Tabs */}
                     <div style={{ display: 'flex', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
-                        {(['all', 'deposit', 'withdraw', 'earning', 'event_payment', 'event_income'] as const).map(f => (
+                        {(['all', 'deposit', 'withdraw', 'earning', 'event_payment', 'event_income', 'membership_purchase', 'audio_call'] as const).map(f => (
                             <button
                                 key={f}
                                 onClick={() => handleFilterChange(f)}
@@ -502,14 +512,14 @@ export default function AdminReportsPage() {
 
                 {/* Cards (Global Ledger) */}
                 <div style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                    {pagedLedger.length === 0 ? (
+                    {visibleLedger.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: 'var(--space-10)', color: 'var(--text-muted)' }}>
                             No transactions found
                         </div>
                     ) : (
-                        pagedLedger.map((e, idx) => {
+                        visibleLedger.map((e, idx) => {
                             const typeInfo = typeLabel[e.type] ?? { label: e.type, color: 'var(--text-secondary)', bg: 'transparent' };
-                            const globalIdx = (page - 1) * PAGE_SIZE + idx + 1;
+                            const globalIdx = idx + 1;
 
                             const amountIsNegative = ((e.type as string) === 'withdraw' || (e.type as string) === 'event_payment');
                             const amountSigned = `${amountIsNegative ? '-' : '+'}${fmt(Number(e.amount))}`;
@@ -680,16 +690,12 @@ export default function AdminReportsPage() {
                     )}
                 </div>
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                    <div style={{ padding: 'var(--space-4) var(--space-6)', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-2)' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            Page {page} of {totalPages}
-                        </span>
-                        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                            <button className="btn btn-ghost btn-sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ opacity: page === 1 ? 0.4 : 1, padding: '6px 12px' }}>← Prev</button>
-                            <button className="btn btn-ghost btn-sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={{ opacity: page === totalPages ? 0.4 : 1, padding: '6px 12px' }}>Next →</button>
-                        </div>
+                {/* Load More */}
+                {filteredLedger.length > visibleCount && (
+                    <div style={{ padding: 'var(--space-4) var(--space-6)', borderTop: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <button className="btn btn-ghost btn-sm" onClick={() => setVisibleCount(c => c + 6)} style={{ padding: '8px 24px' }}>
+                            Show more
+                        </button>
                     </div>
                 )}
             </motion.div>

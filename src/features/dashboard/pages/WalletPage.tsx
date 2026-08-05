@@ -26,6 +26,7 @@ export function WalletPage() {
     });
 
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [visibleCount, setVisibleCount] = useState(6);
 
     const [showDepositModal, setShowDepositModal] = useState(false);
     const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -477,8 +478,8 @@ export function WalletPage() {
                                 </p>
                             </div>
                         ) : (
-                            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                                {transactions.map((tx) => {
+                            <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "60vh", overflowY: "auto", paddingRight: "4px" }}>
+                                {transactions.slice(0, visibleCount).map((tx) => {
                                     const isPositive = tx.type === "deposit" || tx.type === "earning" || tx.type === "event_income";
                                     const isPending = tx.status === "pending";
                                     const isRejected = tx.status === "rejected";
@@ -585,6 +586,31 @@ export function WalletPage() {
                                         </div>
                                     );
                                 })}
+                            </div>
+                        )}
+                        {transactions.length > visibleCount && (
+                            <div style={{ textAlign: "center", marginTop: "16px" }}>
+                                <button
+                                    onClick={() => setVisibleCount(c => c + 6)}
+                                    style={{
+                                        padding: "10px 28px",
+                                        borderRadius: "8px",
+                                        background: "var(--blue-glow)",
+                                        border: "1px solid rgba(59,130,246,0.3)",
+                                        color: "var(--blue-vivid)",
+                                        fontSize: "0.8rem",
+                                        fontWeight: 700,
+                                        letterSpacing: "0.08em",
+                                        textTransform: "uppercase",
+                                        cursor: "pointer",
+                                        fontFamily: "'Inter', sans-serif",
+                                        transition: "all 0.15s",
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-card-hover)"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = "var(--blue-glow)"; }}
+                                >
+                                    Show more
+                                </button>
                             </div>
                         )}
                     </div>
