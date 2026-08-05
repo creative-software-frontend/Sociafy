@@ -2,6 +2,7 @@ const { Server } = require("socket.io");
 const { verifySocketJwt } = require("./socketAuth");
 const { registerChatSocket } = require("./chatSocket");
 const { registerCallSocket } = require("./callSocket");
+const { registerGiftSocket } = require("./giftSocket");
 
 function setupSocket(httpServer) {
     const io = new Server(httpServer, {
@@ -45,6 +46,7 @@ function setupSocket(httpServer) {
 
         registerChatSocket(io, socket, onlineUsers);
         registerCallSocket(io, socket, onlineUsers, activeCalls);
+        registerGiftSocket(io, socket);
 
         socket.on("disconnect", () => {
             if (socket.userId != null && onlineUsers.get(socket.userId) === socket.id) {

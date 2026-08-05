@@ -47,6 +47,8 @@ app.use("/api/upload", require("./routes/uploadRoutes"));
 app.use("/api/newsfeed", require("./routes/newsfeedRoutes"));
 
 app.use("/api/call", require("./routes/callRoutes"));
+app.use("/api/gift", require("./routes/giftRoutes").userRouter);
+app.use("/api/admin/gifts", require("./routes/giftRoutes").adminRouter);
 
 
 // 404

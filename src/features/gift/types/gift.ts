@@ -1,0 +1,47 @@
+export interface Gift {
+    id: number;
+    name: string;
+    icon: string | null;
+    image: string | null;
+    price: number;
+    provider_percentage: number;
+    admin_percentage: number;
+    is_active: number;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface GiftHistoryItem {
+    id: number;
+    sender_id: number;
+    receiver_id: number;
+    gift_id: number;
+    gift_price: number;
+    provider_amount: number;
+    admin_amount: number;
+    message_id: number | null;
+    created_at: string;
+    gift_name: string;
+    gift_icon: string | null;
+    sender_name: string;
+    receiver_name: string;
+}
+
+export interface GiftMessageData {
+    gift: boolean;
+    giftId: number;
+    giftName: string;
+    icon: string;
+    price: number;
+}
+
+export function parseGiftMessage(raw: string): GiftMessageData | null {
+    if (!raw || typeof raw !== 'string' || !raw.startsWith('{"gift"')) return null;
+    try {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.gift === true) return parsed as GiftMessageData;
+    } catch {
+        return null;
+    }
+    return null;
+}

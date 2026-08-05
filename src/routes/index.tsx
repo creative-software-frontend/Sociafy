@@ -188,6 +188,13 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: "admin-gifts",
+        lazy: async () => {
+          const { AdminGiftPage } = await import("../features/dashboard/pages/AdminGiftPage");
+          return { element: <AdminGiftPage /> };
+        },
+      },
+      {
         path: "reports",
         lazy: async () => {
           const { default: AdminReportsPage } = await import("../features/dashboard/pages/AdminReportsPage");

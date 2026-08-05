@@ -8,9 +8,13 @@ import { serviceApi, providerApi, userApi } from '../../../utils/api';
 import type { ChatMessage, ActiveUser } from '../../../utils/api';
 import { TopNav } from './TopNav';
 import { FeatureGate } from '../../../components/FeatureGate';
+import { useToast } from '../../../components/Toast';
 import { CallButton } from '../../call/components/CallButton';
 import { useCallContext } from '../../call/context/callContextValue';
 import { callApi } from '../../call/services/callApi';
+import { GiftPickerModal } from '../../gift/components/GiftPickerModal';
+import { parseGiftMessage } from '../../gift/types/gift';
+import type { Gift } from '../../gift/types/gift';
 
 
 /* ─── helpers ─── */
@@ -86,6 +90,7 @@ export function ChatPage() {
     const { callState } = useCallContext();
     const navigate = useNavigate();
     const { role } = useParams<{ role: string }>();
+    const toast = useToast();
 
     const [contacts, setContacts] = useState<ActiveUser[]>([]);
     const [cLoading, setCLoading] = useState(true);
@@ -114,6 +119,7 @@ export function ChatPage() {
     const [partnerLocked, setPartnerLocked] = useState(false);
     const [partnerChecking, setPartnerChecking] = useState(false);
     const [hasBalance, setHasBalance] = useState(true);
+    const [showGiftPicker, setShowGiftPicker] = useState(false);
 
     useEffect(() => {
         (async () => {
@@ -252,11 +258,16 @@ export function ChatPage() {
             });
         };
 
+        const handleGiftError = (data: { message?: string }) => {
+            toast.error(data?.message || 'Failed to send gift');
+        };
+
         socket.on('connect', handleConnect);
         socket.on('disconnect', handleDisconnect);
         socket.on('typing', handleTyping);
         socket.on('stopTyping', handleStopTyping);
         socket.on('newMessage', handleNewMessage);
+        socket.on('gift:error', handleGiftError);
 
         return () => {
             socket.off('connect', handleConnect);
@@ -264,6 +275,7 @@ export function ChatPage() {
             socket.off('typing', handleTyping);
             socket.off('stopTyping', handleStopTyping);
             socket.off('newMessage', handleNewMessage);
+            socket.off('gift:error', handleGiftError);
             socket.disconnect();
             socketRef.current = null;
         };
@@ -365,6 +377,11 @@ export function ChatPage() {
         setShowTyping(false);
         setSending(false);
         textRef.current?.focus();
+    };
+
+    const sendGift = (gift: Gift) => {
+        if (!selected) return;
+        socketRef.current?.emit('gift:send', { receiver_id: selected.id, gift_id: gift.id });
     };
 
     // Typing indicator helpers (backend contract: { receiver_id })
@@ -583,6 +600,7 @@ export function ChatPage() {
                                 ) : (
                                     messages.map((msg, i) => {
                                         const isMe = msg.sender_id === myId;
+                                        const gift = parseGiftMessage(msg.message);
                                         const newDay = i === 0 || fmtDate(msg.created_at) !== fmtDate(messages[i - 1].created_at);
                                         // show avatar on last message of a clump, for both sides
                                         const isLastInClump = i === messages.length - 1 || messages[i + 1]?.sender_id !== msg.sender_id;
@@ -612,16 +630,37 @@ export function ChatPage() {
 
                                                     {/* Bubble + timestamp */}
                                                     <div style={{ maxWidth: '72%', display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
-                                                        <div style={{
-                                                            background: isMe ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(255,255,255,0.08)',
-                                                            backdropFilter: !isMe ? 'blur(10px)' : undefined,
-                                                            border: !isMe ? '1px solid rgba(255,255,255,0.07)' : 'none',
-                                                            borderRadius: isMe ? (clump ? '18px 4px 4px 18px' : '18px 4px 18px 18px') : (clump ? '4px 18px 18px 4px' : '4px 18px 18px 18px'),
-                                                            padding: '9px 14px',
-                                                            boxShadow: isMe ? '0 4px 16px rgba(99,102,241,0.35)' : '0 1px 6px rgba(0,0,0,0.3)',
-                                                        }}>
-                                                            <p style={{ color: '#fff', fontSize: '0.9rem', lineHeight: 1.55, margin: 0, wordBreak: 'break-word' }}>{msg.message}</p>
-                                                        </div>
+                                                        {gift ? (
+                                                            <div style={{
+                                                                background: isMe ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(255,255,255,0.08)',
+                                                                backdropFilter: !isMe ? 'blur(10px)' : undefined,
+                                                                border: !isMe ? '1px solid rgba(255,255,255,0.07)' : 'none',
+                                                                borderRadius: isMe ? (clump ? '18px 4px 4px 18px' : '18px 4px 18px 18px') : (clump ? '4px 18px 18px 4px' : '4px 18px 18px 18px'),
+                                                                padding: '10px 14px',
+                                                                boxShadow: isMe ? '0 4px 16px rgba(99,102,241,0.35)' : '0 1px 6px rgba(0,0,0,0.3)',
+                                                                minWidth: 120,
+                                                                textAlign: 'center' as const,
+                                                            }}>
+                                                                <div style={{ fontSize: '2rem', lineHeight: 1, marginBottom: 4 }}>{gift.icon || '🎁'}</div>
+                                                                <p style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700, margin: '0 0 2px' }}>
+                                                                    {gift.giftName} Gift
+                                                                </p>
+                                                                <p style={{ color: isMe ? 'rgba(255,255,255,0.8)' : 'rgba(139,92,246,0.9)', fontSize: '0.75rem', fontWeight: 700, margin: 0 }}>
+                                                                    ৳{Number(gift.price).toFixed(2)}
+                                                                </p>
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{
+                                                                background: isMe ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(255,255,255,0.08)',
+                                                                backdropFilter: !isMe ? 'blur(10px)' : undefined,
+                                                                border: !isMe ? '1px solid rgba(255,255,255,0.07)' : 'none',
+                                                                borderRadius: isMe ? (clump ? '18px 4px 4px 18px' : '18px 4px 18px 18px') : (clump ? '4px 18px 18px 4px' : '4px 18px 18px 18px'),
+                                                                padding: '9px 14px',
+                                                                boxShadow: isMe ? '0 4px 16px rgba(99,102,241,0.35)' : '0 1px 6px rgba(0,0,0,0.3)',
+                                                            }}>
+                                                                <p style={{ color: '#fff', fontSize: '0.9rem', lineHeight: 1.55, margin: 0, wordBreak: 'break-word' }}>{msg.message}</p>
+                                                            </div>
+                                                        )}
                                                         <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.2)', marginTop: 3, paddingLeft: 4, paddingRight: 4 }}>
                                                             {fmtTime(msg.created_at)}{isMe && ' ✓✓'}
                                                         </span>
@@ -660,6 +699,19 @@ export function ChatPage() {
                                         onFocusCapture={e => (e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)')}
                                         onBlurCapture={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)')}
                                     >
+                                        {!isProvider && (
+                                            <button
+                                                onClick={() => setShowGiftPicker(true)}
+                                                title="Send a gift"
+                                                style={{
+                                                    background: 'none', border: 'none', cursor: 'pointer',
+                                                    fontSize: '1.25rem', padding: '0 2px', lineHeight: 1, flexShrink: 0,
+                                                    WebkitTapHighlightColor: 'transparent',
+                                                }}
+                                            >
+                                                🎁
+                                            </button>
+                                        )}
                                         {/* emoji placeholder */}
                                         <button style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: '1.1rem', padding: '2px 0', lineHeight: 1, flexShrink: 0 }}>😊</button>
                                         <textarea ref={textRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={onKey}
@@ -678,6 +730,9 @@ export function ChatPage() {
                     )}
                 </div>
             </FeatureGate>
+            {showGiftPicker && (
+                <GiftPickerModal onClose={() => setShowGiftPicker(false)} onSend={sendGift} />
+            )}
         </>
     );
 }
