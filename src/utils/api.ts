@@ -35,6 +35,13 @@ async function request<T>(
 
         console.log('[membershipApi request]', { path, resOk: res.ok, status: res.status, json });
 
+        if (res.status === 429) {
+            return {
+                status: 429,
+                error: 'Too many requests. Please try again later.',
+            };
+        }
+
         if (!res.ok) {
             return {
                 status: res.status,

@@ -1,6 +1,14 @@
 const db = require("../config/db");
 const callService = require("../services/callService");
 const platformSettingsService = require("../services/platformSettingsService");
+const { createSocketLimiter } = require("../config/rateLimits");
+
+// Cap how fast a user may initiate calls (abuse protection). WebRTC signaling
+// relay events (offer / ice-candidate) are intentionally NOT limited so normal
+// negotiation is unaffected.
+const callInitiateLimiter = createSocketLimiter({ windowMs: 60000, max: 10, scope: "call:initiate" });
+// Generous cap on call state transitions for a single active call.
+const callSignalingLimiter = createSocketLimiter({ windowMs: 60000, max: 120, scope: "call:signaling" });
 
 function cleanupCall(activeCalls, callerId) {
     const call = activeCalls.get(callerId);
@@ -11,8 +19,41 @@ function cleanupCall(activeCalls, callerId) {
     if (call.watchdogTimer) {
         clearInterval(call.watchdogTimer);
     }
+    call.ended = true;
     activeCalls.delete(callerId);
     return call;
+}
+
+/**
+ * Server-authoritative "mark this active call as connected (billable)".
+ *
+ * Validates:
+ *  - an active call exists for the socket's user
+ *  - the call has not ended
+ *  - the socket's user is a participant (caller or receiver)
+ *  - the receiver has already answered (callLogId + answeredAt exist)
+ *  - the call is not already marked connected (idempotent)
+ *
+ * Returns { ok, reason } and mutates the call state in memory. The socket handler
+ * performs the database update after this returns ok.
+ */
+function tryMarkConnected(activeCalls, userId) {
+    const call = callService.findCallByUserId(activeCalls, userId);
+    if (!call) return { ok: false, reason: "no_active_call" };
+    if (call.ended) return { ok: false, reason: "call_ended" };
+    if (call.billable) return { ok: false, reason: "already_connected" };
+    if (userId !== call.callerId && userId !== call.calleeId) {
+        return { ok: false, reason: "not_participant" };
+    }
+    if (!call.callLogId || !call.answeredAt) {
+        return { ok: false, reason: "not_answered" };
+    }
+
+    // Billing starts only from the moment WebRTC actually connected.
+    call.connectedAt = new Date();
+    call.billable = true;
+    call.startedAt = call.connectedAt;
+    return { ok: true, call };
 }
 
 async function endCallAndBill(io, activeCalls, userId, reason = "ended") {
@@ -23,15 +64,21 @@ async function endCallAndBill(io, activeCalls, userId, reason = "ended") {
     cleanupCall(activeCalls, callerId);
 
     const otherId = userId === callerId ? calleeId : callerId;
+    const endedAt = new Date();
 
-    // If a call log exists (call was connected), finalise duration + billing atomically
-    if (call.callLogId && call.startedAt) {
-        const endedAt = new Date();
-        const durationSeconds = Math.floor((endedAt.getTime() - call.startedAt.getTime()) / 1000);
-        await callService.chargeForCall(call.callLogId, callerId, calleeId, durationSeconds, {
-            endedAt,
-            endedBy: userId,
-        });
+    if (call.callLogId) {
+        if (call.billable && call.startedAt) {
+            // WebRTC connection actually reached "connected" — bill from connectedAt.
+            const durationSeconds = Math.floor((endedAt.getTime() - call.startedAt.getTime()) / 1000);
+            await callService.chargeForCall(call.callLogId, callerId, calleeId, durationSeconds, {
+                endedAt,
+                endedBy: userId,
+            });
+        } else {
+            // Answered but WebRTC never connected (ICE/SDP failure, network, etc.)
+            // — NOT billable. Mark the log as failed so it shows 0 cost.
+            await db.query("UPDATE call_logs SET status = 'failed', ended_at = ? WHERE id = ?", [endedAt, call.callLogId]);
+        }
     }
 
     if (reason === "balance-exhausted") {
@@ -104,6 +151,12 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
         const callerId = socket.userId;
         const calleeId = Number(receiver_id);
         const callerRole = socket.role;
+
+        const initiateRl = callInitiateLimiter(callerId);
+        if (!initiateRl.allowed) {
+            socket.emit("call:error", { message: "Too many requests. Please try again later." });
+            return;
+        }
 
         console.log(`[call:request] callerId=${callerId} calleeId=${calleeId} callerRole=${callerRole} same=${callerId === calleeId}`);
         console.log(`[call:request] onlineUsers has caller=${onlineUsers.has(callerId)} has callee=${onlineUsers.has(calleeId)}`);
@@ -179,10 +232,20 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
     });
 
     /* ───────── call:accept ───────── */
+    const signalingAllowed = () => {
+        const rl = callSignalingLimiter(socket.userId);
+        if (!rl.allowed) {
+            socket.emit("call:error", { message: "Too many requests. Please try again later." });
+            return false;
+        }
+        return true;
+    };
+
     socket.on("call:accept", async ({ caller_id }) => {
         const calleeId = socket.userId;
         const call = activeCalls.get(Number(caller_id));
 
+        if (signalingAllowed() === false) return;
         if (!call || call.calleeId !== calleeId) return;
 
         if (call.timeoutRef) {
@@ -200,6 +263,7 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
     /* ───────── call:reject ───────── */
     socket.on("call:reject", async ({ caller_id }) => {
         const calleeId = socket.userId;
+        if (signalingAllowed() === false) return;
         const call = activeCalls.get(Number(caller_id));
         if (!call || call.calleeId !== calleeId) return;
 
@@ -213,6 +277,7 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
     /* ───────── call:cancel ───────── */
     socket.on("call:cancel", async ({ receiver_id }) => {
         const callerId = socket.userId;
+        if (signalingAllowed() === false) return;
         const call = activeCalls.get(callerId);
         if (!call || call.calleeId !== Number(receiver_id)) return;
 
@@ -223,9 +288,10 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
         });
     });
 
-    /* ───────── call:answer + create call log ───────── */
+    /* ───────── call:answer + create call log (NOT yet billable) ───────── */
     socket.on("call:answer", async ({ caller_id, sdp }) => {
         const calleeId = socket.userId;
+        if (signalingAllowed() === false) return;
         const call = activeCalls.get(Number(caller_id));
         if (!call || call.calleeId !== calleeId) return;
 
@@ -234,16 +300,32 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
             from: calleeId,
         });
 
-        // Create call log entry when call is connected
-        call.startedAt = new Date();
-        const [result] = await db.query(
-            "INSERT INTO call_logs (caller_id, callee_id, status, call_type, started_at) VALUES (?, ?, 'connected', ?, ?)",
-            [call.callerId, call.calleeId, call.callType || "audio", call.startedAt]
-        );
-        call.callLogId = result.insertId;
+        // The receiver answered (SDP answer exchanged). The call is NOT billable
+        // yet — it becomes billable only when WebRTC actually connects.
+        if (!call.answeredAt) call.answeredAt = new Date();
+        if (!call.callLogId) {
+            const [result] = await db.query(
+                "INSERT INTO call_logs (caller_id, callee_id, status, call_type) VALUES (?, ?, 'connected', ?)",
+                [call.callerId, call.calleeId, call.callType || "audio"]
+            );
+            call.callLogId = result.insertId;
+        }
+    });
 
-        // Watch for balance exhaustion so the call is terminated before either
-        // wallet can go negative.
+    /* ───────── call:connected (WebRTC actually connected → billable) ───────── */
+    socket.on("call:connected", async () => {
+        const userId = socket.userId;
+        if (signalingAllowed() === false) return;
+        const result = tryMarkConnected(activeCalls, userId);
+        if (!result.ok) return; // idempotent / not a participant / not answered / etc.
+
+        const call = result.call;
+        await db.query(
+            "UPDATE call_logs SET status = 'connected', started_at = ? WHERE id = ?",
+            [call.connectedAt, call.callLogId]
+        );
+
+        // Now that the call is billable, watch for balance exhaustion.
         startBalanceWatchdog(io, activeCalls, call);
     });
 
@@ -265,6 +347,7 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
 
     /* ───────── call:end ───────── */
     socket.on("call:end", async ({ target_id }) => {
+        if (signalingAllowed() === false) return;
         await endCallAndBill(io, activeCalls, socket.userId);
     });
 
@@ -276,11 +359,12 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
         const call = callService.findCallByUserId(activeCalls, userId);
         if (!call) return;
 
-        if (call.callLogId && call.startedAt) {
-            // Call was connected — finalise with billing
-            await endCallAndBill(io, activeCalls, userId);
+        if (call.callLogId) {
+            // A call log exists (receiver answered). endCallAndBill finalises it:
+            // billed normally if WebRTC connected, marked failed otherwise.
+            await endCallAndBill(io, activeCalls, userId, "disconnect");
         } else {
-            // Call never connected — just clean up
+            // Call never answered — just clean up
             cleanupCall(activeCalls, call.callerId);
             const otherId = userId === call.callerId ? call.calleeId : call.callerId;
             io.to(`user_${otherId}`).emit("call:ended", {
@@ -293,4 +377,4 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
     });
 }
 
-module.exports = { registerCallSocket };
+module.exports = { registerCallSocket, endCallAndBill, tryMarkConnected, startBalanceWatchdog };

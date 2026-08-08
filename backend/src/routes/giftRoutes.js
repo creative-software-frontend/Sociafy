@@ -2,13 +2,14 @@ const express = require("express");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 const giftController = require("../controllers/giftController");
+const { giftHttpLimiter } = require("../config/rateLimits");
 
 // ── Public / User gift routes (mounted at /api/gift) ──
 const userRouter = express.Router();
 
 userRouter.get("/list", authMiddleware, giftController.listGifts);
 userRouter.get("/history", authMiddleware, giftController.getHistory);
-userRouter.post("/send", authMiddleware, giftController.sendGift);
+userRouter.post("/send", authMiddleware, giftHttpLimiter, giftController.sendGift);
 
 // ── Admin gift management (mounted at /api/admin/gifts) ──
 const adminRouter = express.Router();

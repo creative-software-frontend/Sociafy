@@ -35,6 +35,7 @@ async function request<T>(path: string): Promise<{ data?: T; error?: string }> {
             headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
         const json = await res.json();
+        if (res.status === 429) return { error: 'Too many requests. Please try again later.' };
         if (!res.ok) return { error: json.message || `Request failed (${res.status})` };
         return { data: json as T };
     } catch {

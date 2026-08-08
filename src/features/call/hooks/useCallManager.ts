@@ -35,10 +35,19 @@ interface QualityCallbacks {
     onConnectionLost: (lost: boolean) => void;
 }
 
-function onWebRTCStateChange(state: string, dispatch: React.Dispatch<CallAction>) {
+function onWebRTCStateChange(
+    state: string,
+    dispatch: React.Dispatch<CallAction>,
+    emit?: (event: string, data: unknown) => void,
+    peerId?: number | null,
+) {
     if (state === 'connected') {
         dispatch({ type: 'SET_CONNECTED' });
+        // Signal the server that WebRTC truly connected — this is what makes the
+        // call billable. Server validates this socket is part of the active call.
+        emit?.('call:connected', {});
     } else if (state === 'failed') {
+        if (peerId) emit?.('call:end', { target_id: peerId });
         dispatch({ type: 'SET_ERROR', payload: { message: 'Connection failed' } });
     }
 }
@@ -222,7 +231,7 @@ export function useCallManager(
             dispatch({ type: 'SET_RINGING' });
             try {
                 const targetId = stateRef.current?.peerId ?? 0;
-                const onConnChange = (s: string) => onWebRTCStateChange(s, dispatch);
+                const onConnChange = (s: string) => onWebRTCStateChange(s, dispatch, emit, stateRef.current?.peerId);
                 const offer = await webRTC.createOffer(getIceCandidateSender(targetId), onConnChange, handleIceConnectionChange);
                 // Start connection timeout — must connect within 30s
                 startConnectTimeout(() => {
@@ -243,7 +252,7 @@ export function useCallManager(
 
             try {
                 const targetId = currentState.peerId ?? 0;
-                const onConnChange = (s: string) => onWebRTCStateChange(s, dispatch);
+                const onConnChange = (s: string) => onWebRTCStateChange(s, dispatch, emit, stateRef.current?.peerId);
                 const answer = await webRTC.createAnswer(data.sdp, getIceCandidateSender(targetId), onConnChange, handleIceConnectionChange);
                 startConnectTimeout(() => {
                     endCall();

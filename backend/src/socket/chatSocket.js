@@ -1,4 +1,8 @@
 const { getMessages, sendMessage, checkChatPermission } = require("../services/chatService");
+const { createSocketLimiter } = require("../config/rateLimits");
+
+// Per-user message spam protection (windowed, in-memory).
+const chatMessageLimiter = createSocketLimiter({ windowMs: 60000, max: 30, scope: "chat:message" });
 
 function registerChatSocket(io, socket, onlineUsers) {
     // Note: Only implement the events required by the task.
@@ -45,6 +49,12 @@ function registerChatSocket(io, socket, onlineUsers) {
 
     socket.on("sendMessage", async ({ receiver_id, message }) => {
         try {
+            const rl = chatMessageLimiter(socket.userId);
+            if (!rl.allowed) {
+                socket.emit("error", { error: true, message: "Too many requests. Please try again later." });
+                return;
+            }
+
             if (!(await canChat(receiver_id))) return;
 
             const senderId = socket.userId;

@@ -1,8 +1,19 @@
 const giftService = require("../services/giftService");
+const { createSocketLimiter } = require("../config/rateLimits");
+
+// Per-user gift spam protection. Atomicity of the underlying gift transaction is
+// unchanged — this only limits how fast a client may attempt to send.
+const giftSendLimiter = createSocketLimiter({ windowMs: 60000, max: 30, scope: "gift:send" });
 
 function registerGiftSocket(io, socket) {
     socket.on("gift:send", async ({ receiver_id, gift_id }) => {
         try {
+            const rl = giftSendLimiter(socket.userId);
+            if (!rl.allowed) {
+                socket.emit("gift:error", { message: "Too many requests. Please try again later." });
+                return;
+            }
+
             const receiverId = Number(receiver_id);
             const giftId = Number(gift_id);
             if (!receiverId || !giftId) {

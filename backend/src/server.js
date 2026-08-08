@@ -14,6 +14,16 @@ try {
 const app = express();
 const db = require("./config/db");
 
+// Reverse-proxy awareness for rate limiting (IP extraction). Only enabled when
+// TRUST_PROXY is explicitly set. Accepts: true, a hop count (e.g. 1), or
+// comma-separated addresses. Not enabled blindly.
+const trustProxy = process.env.TRUST_PROXY;
+if (trustProxy !== undefined && trustProxy !== "") {
+    if (trustProxy === "true") app.set("trust proxy", true);
+    else if (/^\d+$/.test(trustProxy)) app.set("trust proxy", Number(trustProxy));
+    else app.set("trust proxy", trustProxy.split(",").map((s) => s.trim()));
+}
+
 const corsOrigins = envConfig.getCorsOrigins();
 app.use(cors({
     origin(origin, cb) {
