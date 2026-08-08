@@ -3,6 +3,7 @@ const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const { getHistory, getCall } = require("../controllers/callController");
 const platformSettingsService = require("../services/platformSettingsService");
+const { handleError } = require("../utils/httpError");
 
 router.get("/history", authMiddleware, getHistory);
 
@@ -11,7 +12,7 @@ router.get("/rate", authMiddleware, async (req, res) => {
         const rates = await platformSettingsService.getCallRates();
         res.json(rates);
     } catch (err) {
-        res.status(500).json({ message: err.message || "Failed to fetch call rate" });
+        return handleError(res, err, "Failed to fetch call rate");
     }
 });
 

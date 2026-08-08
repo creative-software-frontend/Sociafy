@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
+const authMiddleware = require("../middleware/authMiddleware");
 const { uploadImageMiddleware, resolvePublicUrl } = require("../middleware/uploadImageMiddleware");
 
-// POST /api/upload/image
-router.post("/image", (req, res) => {
+// POST /api/upload/image (authenticated only)
+router.post("/image", authMiddleware, (req, res) => {
     // Multer middleware must run before we can compute filename/url
     uploadImageMiddleware(req, res, (err) => {
         if (err) {

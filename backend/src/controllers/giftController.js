@@ -1,4 +1,5 @@
 const giftService = require("../services/giftService");
+const { handleError } = require("../utils/httpError");
 
 function parsePrice(v) {
     const n = Number(v);
@@ -22,7 +23,7 @@ async function listGifts(req, res) {
         const gifts = await giftService.getGifts();
         return res.json({ gifts });
     } catch (err) {
-        return res.status(500).json({ message: err.message || "Failed to fetch gifts" });
+        return handleError(res, err, "Failed to fetch gifts");
     }
 }
 
@@ -39,7 +40,7 @@ async function sendGift(req, res) {
         });
         return res.json({ message: "Gift sent", ...result });
     } catch (err) {
-        return res.status(err.statusCode || 500).json({ message: err.message || "Failed to send gift" });
+        return handleError(res, err, "Failed to send gift");
     }
 }
 
@@ -48,7 +49,7 @@ async function getHistory(req, res) {
         const history = await giftService.getGiftHistory(req.user.id);
         return res.json({ history });
     } catch (err) {
-        return res.status(500).json({ message: err.message || "Failed to fetch gift history" });
+        return handleError(res, err, "Failed to fetch gift history");
     }
 }
 
@@ -58,7 +59,7 @@ async function adminListGifts(req, res) {
         const gifts = await giftService.getGifts({ includeInactive: true });
         return res.json({ gifts });
     } catch (err) {
-        return res.status(500).json({ message: err.message || "Failed to fetch gifts" });
+        return handleError(res, err, "Failed to fetch gifts");
     }
 }
 
@@ -85,7 +86,7 @@ async function adminCreateGift(req, res) {
         });
         return res.json({ gift });
     } catch (err) {
-        return res.status(500).json({ message: err.message || "Failed to create gift" });
+        return handleError(res, err, "Failed to create gift");
     }
 }
 
@@ -117,7 +118,7 @@ async function adminUpdateGift(req, res) {
         });
         return res.json({ gift });
     } catch (err) {
-        return res.status(500).json({ message: err.message || "Failed to update gift" });
+        return handleError(res, err, "Failed to update gift");
     }
 }
 
@@ -129,7 +130,7 @@ async function adminToggleGift(req, res) {
         if (!gift) return res.status(404).json({ message: "Gift not found" });
         return res.json({ gift });
     } catch (err) {
-        return res.status(500).json({ message: err.message || "Failed to toggle gift" });
+        return handleError(res, err, "Failed to toggle gift");
     }
 }
 
@@ -138,7 +139,7 @@ async function adminDeleteGift(req, res) {
         await giftService.deleteGift(Number(req.params.id));
         return res.json({ message: "Gift deleted" });
     } catch (err) {
-        return res.status(500).json({ message: err.message || "Failed to delete gift" });
+        return handleError(res, err, "Failed to delete gift");
     }
 }
 

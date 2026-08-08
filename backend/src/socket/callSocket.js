@@ -158,9 +158,6 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
             return;
         }
 
-        console.log(`[call:request] callerId=${callerId} calleeId=${calleeId} callerRole=${callerRole} same=${callerId === calleeId}`);
-        console.log(`[call:request] onlineUsers has caller=${onlineUsers.has(callerId)} has callee=${onlineUsers.has(calleeId)}`);
-
         const [calleeRows] = await db.query("SELECT role FROM users WHERE id = ?", [calleeId]);
         if (!calleeRows.length) {
             socket.emit("call:error", { message: "User not found" });
@@ -205,7 +202,6 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
 
         socket.emit("call:calling", { receiver_id: calleeId });
 
-        console.log(`[call:request] EMITTING call:incoming to room user_${calleeId}`);
         io.to(`user_${calleeId}`).emit("call:incoming", {
             caller_id: callerId,
             caller_name: callerName,

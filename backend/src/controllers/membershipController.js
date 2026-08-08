@@ -1,4 +1,5 @@
 const membershipService = require("../services/membershipService");
+const { handleError } = require("../utils/httpError");
 
 async function buyMembership(req, res) {
   try {
@@ -25,7 +26,7 @@ async function buyMembership(req, res) {
 
   } catch (error) {
     const status = error.statusCode || 500;
-    return res.status(status).json({ message: error.message || "Membership purchase failed" });
+    return handleError(res, error, "Membership purchase failed");
   }
 }
 
@@ -38,7 +39,7 @@ async function getMembershipStatus(req, res) {
     return res.json(result);
   } catch (error) {
     const status = error.statusCode || 500;
-    return res.status(status).json({ message: error.message || "Failed to fetch membership status" });
+    return handleError(res, error, "Failed to fetch membership status");
   }
 }
 
@@ -51,7 +52,7 @@ async function getCurrentMembership(req, res) {
     return res.json(result);
   } catch (error) {
     const status = error.statusCode || 500;
-    return res.status(status).json({ message: error.message || "Failed to fetch current membership" });
+    return handleError(res, error, "Failed to fetch current membership");
   }
 }
 
@@ -61,7 +62,7 @@ async function getUserPackages(req, res) {
     return res.json(result);
   } catch (error) {
     const status = error.statusCode || 500;
-    return res.status(status).json({ message: error.message || "Failed to fetch user packages" });
+    return handleError(res, error, "Failed to fetch user packages");
   }
 }
 
@@ -71,7 +72,7 @@ async function getProviderPackages(req, res) {
     return res.json(result);
   } catch (error) {
     const status = error.statusCode || 500;
-    return res.status(status).json({ message: error.message || "Failed to fetch provider packages" });
+    return handleError(res, error, "Failed to fetch provider packages");
   }
 }
 
@@ -87,7 +88,7 @@ async function cancelMembership(req, res) {
     });
   } catch (error) {
     const status = error.statusCode || 500;
-    return res.status(status).json({ message: error.message || "Failed to cancel membership" });
+    return handleError(res, error, "Failed to cancel membership");
   }
 }
 

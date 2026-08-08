@@ -43,7 +43,7 @@ router.post(
             "SELECT id, role FROM users WHERE id = ? LIMIT 1",
             [providerId],
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error" });
+                if (err) return res.status(500).json({ message: "An internal server error occurred." });
                 if (!rows || rows.length === 0) {
                     return res.status(404).json({ message: "Provider not found" });
                 }
@@ -59,7 +59,7 @@ router.post(
                      ORDER BY created_at DESC LIMIT 1`,
                     [userId, providerId],
                     (err2, existing) => {
-                        if (err2) return res.status(500).json({ message: "Database error" });
+                        if (err2) return res.status(500).json({ message: "An internal server error occurred." });
 
                         if (existing && existing.length > 0) {
                             const st = existing[0].status;
@@ -81,7 +81,7 @@ router.post(
                                     if (err3.code === "ER_DUP_ENTRY") {
                                         return res.status(400).json({ message: "Request already pending", status: "pending" });
                                     }
-                                    return res.status(500).json({ message: "Database error" });
+                                    return res.status(500).json({ message: "An internal server error occurred." });
                                 }
                                 return res.status(201).json({
                                     message: "Partner request sent",
@@ -131,7 +131,7 @@ router.get(
         `;
 
         db.query(sql, [providerId], (err, rows) => {
-            if (err) return res.status(500).json({ message: "Database error" });
+            if (err) return res.status(500).json({ message: "An internal server error occurred." });
             res.json({ requests: rows || [] });
         });
     }
@@ -151,7 +151,7 @@ router.post(
             "SELECT id, provider_id, user_id, status FROM partner_requests WHERE id = ? LIMIT 1",
             [id],
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error" });
+                if (err) return res.status(500).json({ message: "An internal server error occurred." });
                 if (!rows || rows.length === 0) {
                     return res.status(404).json({ message: "Request not found" });
                 }
@@ -167,7 +167,7 @@ router.post(
                     "UPDATE partner_requests SET status = 'accepted' WHERE id = ?",
                     [id],
                     (uErr) => {
-                        if (uErr) return res.status(500).json({ message: "Database error" });
+                        if (uErr) return res.status(500).json({ message: "An internal server error occurred." });
                         res.json({ message: "Request accepted", request_id: id, status: "accepted" });
                     }
                 );
@@ -190,7 +190,7 @@ router.post(
             "SELECT id, provider_id, status FROM partner_requests WHERE id = ? LIMIT 1",
             [id],
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error" });
+                if (err) return res.status(500).json({ message: "An internal server error occurred." });
                 if (!rows || rows.length === 0) {
                     return res.status(404).json({ message: "Request not found" });
                 }
@@ -206,7 +206,7 @@ router.post(
                     "UPDATE partner_requests SET status = 'rejected' WHERE id = ?",
                     [id],
                     (uErr) => {
-                        if (uErr) return res.status(500).json({ message: "Database error" });
+                        if (uErr) return res.status(500).json({ message: "An internal server error occurred." });
                         res.json({ message: "Request rejected", request_id: id, status: "rejected" });
                     }
                 );
@@ -237,7 +237,7 @@ router.get(
              ORDER BY created_at DESC LIMIT 1`,
             [userId, providerId],
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error" });
+                if (err) return res.status(500).json({ message: "An internal server error occurred." });
                 if (!rows || rows.length === 0) {
                     return res.json({ status: null });
                 }
@@ -268,7 +268,7 @@ router.get(
             "SELECT id, role FROM users WHERE id = ? LIMIT 1",
             [providerId],
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error" });
+                if (err) return res.status(500).json({ message: "An internal server error occurred." });
                 if (!rows || rows.length === 0) {
                     return res.status(404).json({ message: "Provider not found" });
                 }
@@ -282,7 +282,7 @@ router.get(
                      ORDER BY created_at DESC LIMIT 1`,
                     [userId, providerId],
                     (err2, prRows) => {
-                        if (err2) return res.status(500).json({ message: "Database error" });
+                        if (err2) return res.status(500).json({ message: "An internal server error occurred." });
                         const status = prRows && prRows.length ? prRows[0].status : null;
                         const full = status === "accepted";
 
@@ -300,7 +300,7 @@ router.get(
                             `SELECT ${cols.map((c) => `\`${c}\``).join(", ")} FROM users WHERE id = ? LIMIT 1`,
                             [providerId],
                             (err3, profRows) => {
-                                if (err3) return res.status(500).json({ message: "Database error" });
+                                if (err3) return res.status(500).json({ message: "An internal server error occurred." });
                                 if (!profRows || profRows.length === 0) {
                                     return res.status(404).json({ message: "Provider not found" });
                                 }
@@ -339,7 +339,7 @@ router.get(
              ORDER BY created_at DESC LIMIT 1`,
             [userId, providerId],
             (err, prRows) => {
-                if (err) return res.status(500).json({ message: "Database error" });
+                if (err) return res.status(500).json({ message: "An internal server error occurred." });
                 const status = prRows && prRows.length ? prRows[0].status : null;
                 const full = status === "accepted";
 
@@ -357,7 +357,7 @@ router.get(
                     `SELECT ${cols.map((c) => `\`${c}\``).join(", ")} FROM users WHERE id = ? LIMIT 1`,
                     [userId],
                     (err2, profRows) => {
-                        if (err2) return res.status(500).json({ message: "Database error" });
+                        if (err2) return res.status(500).json({ message: "An internal server error occurred." });
                         if (!profRows || profRows.length === 0) {
                             return res.status(404).json({ message: "User not found" });
                         }

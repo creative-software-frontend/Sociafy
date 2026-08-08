@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { handleError } = require("../utils/httpError");
 
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
@@ -49,7 +50,7 @@ router.get(
             ORDER BY is_online DESC, last_seen DESC
             `,
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 res.json(rows);
             }
         );
@@ -100,7 +101,7 @@ router.get(
             `,
             [providerId, providerId, providerId, providerId, providerId, providerId],
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 res.json(rows);
             }
         );
@@ -150,7 +151,7 @@ router.get(
             `,
             [userId, userId, userId, userId, userId, userId],
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 res.json(rows);
             }
         );
@@ -177,7 +178,7 @@ router.get(
              LIMIT 50`,
             [userId],
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 const mapped = rows.map(r => ({
                     ...r,
                     like_count: Number(r.like_count),
@@ -206,7 +207,7 @@ router.post(
             `INSERT INTO posts (user_id, content, image_url) VALUES (?, ?, ?)`,
             [userId, content.trim(), image_url || null],
             (err, result) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 // Return new post with author info
                 db.query(
                     `SELECT p.id, p.content, p.image_url, p.created_at,
@@ -247,7 +248,7 @@ router.get(
             const rows = await chatService.getMessages({ senderId: me, partnerId: partner });
             res.json(rows);
         } catch (err) {
-            res.status(err.statusCode || 500).json({ message: err.message || "Database error" });
+            return handleError(res, err);
         }
     }
 );
@@ -281,7 +282,7 @@ router.post(
             });
             res.status(201).json(inserted);
         } catch (err) {
-            res.status(err.statusCode || 500).json({ message: err.message || "Database error" });
+            return handleError(res, err);
         }
     }
 );
@@ -342,7 +343,7 @@ router.post(
                 application_deadline
             ],
             (err, result) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 res.status(201).json({
                     id: result.insertId,
                     title,
@@ -418,7 +419,7 @@ router.put(
                 providerId
             ],
             (err, result) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 if (result.affectedRows === 0) {
                     return res.status(404).json({ message: "Event not found or you are not authorized to edit it." });
                 }
@@ -442,7 +443,7 @@ router.delete(
             `DELETE FROM events WHERE id = ? AND creator_id = ?`,
             [eventId, providerId],
             (err, result) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 if (result.affectedRows === 0) {
                     return res.status(404).json({ message: "Event not found or you are not authorized to delete it." });
                 }
@@ -468,7 +469,7 @@ router.get(
              WHERE ep.event_id = ?`,
             [eventId],
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 res.json(rows);
             }
         );
@@ -490,7 +491,7 @@ router.get(
              JOIN users u ON e.creator_id = u.id
              ORDER BY e.date_time ASC`,
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 res.json(rows);
             }
         );
@@ -515,7 +516,7 @@ router.get(
              ORDER BY e.date_time ASC`,
             [providerId],
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 res.json(rows);
             }
         );
@@ -604,7 +605,7 @@ router.get(
 
             res.json(result);
         } catch (err) {
-            res.status(500).json({ message: err.message });
+            return handleError(res, err);
         }
     }
 );
@@ -629,7 +630,7 @@ router.get(
              LIMIT 12`,
             [providerId],
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 res.json(rows || []);
             }
         );
@@ -656,7 +657,7 @@ router.get(
              ORDER BY next_event ASC, event_count DESC
              LIMIT 12`,
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 res.json(rows || []);
             }
         );
@@ -725,7 +726,7 @@ router.get(
             LIMIT 10`,
             [providerId, providerId, providerId],
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 res.json(rows || []);
             }
         );
@@ -749,7 +750,7 @@ router.get(
              LIMIT 10`,
             [providerId],
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 res.json(rows || []);
             }
         );
@@ -776,7 +777,7 @@ router.get(
              LIMIT 50`,
             [providerId],
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 res.json(rows || []);
             }
         );
@@ -797,7 +798,7 @@ router.get(
              FROM events e
              ORDER BY date_time ASC`,
             (err, rows) => {
-                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (err) return handleError(res, err);
                 res.json(rows || []);
             }
         );

@@ -1,4 +1,5 @@
 const adminWalletService = require("../services/adminWalletService");
+const { handleError } = require("../utils/httpError");
 
 async function getWallet(req, res) {
     try {
@@ -8,7 +9,7 @@ async function getWallet(req, res) {
         ]);
         return res.json({ ...summary, transactions });
     } catch (err) {
-        return res.status(500).json({ message: err.message || "Failed to fetch admin wallet" });
+        return handleError(res, err, "Failed to fetch admin wallet");
     }
 }
 
@@ -17,7 +18,7 @@ async function getTransactions(req, res) {
         const transactions = await adminWalletService.getTransactions();
         return res.json({ transactions });
     } catch (err) {
-        return res.status(500).json({ message: err.message || "Failed to fetch transactions" });
+        return handleError(res, err, "Failed to fetch transactions");
     }
 }
 
@@ -37,8 +38,9 @@ async function withdraw(req, res) {
         });
         return res.json(result);
     } catch (err) {
-        const statusCode = err.statusCode || 500;
-        return res.status(statusCode).json({ message: err.message || "Withdraw failed" });
+        // 4xx (e.g. "Cannot withdraw more than balance") keeps its message;
+        // 5xx returns a generic message.
+        return handleError(res, err, "Withdraw failed");
     }
 }
 

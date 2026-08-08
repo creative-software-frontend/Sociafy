@@ -209,6 +209,20 @@ async function chargeForCall(callLogId, callerId, calleeId, durationSeconds, { e
     }
 }
 
+async function getCallById(callId, userId) {
+    const [rows] = await db.query(
+        `SELECT c.*,
+                caller.name AS caller_name,
+                callee.name AS callee_name
+         FROM call_logs c
+         JOIN users caller ON caller.id = c.caller_id
+         JOIN users callee ON callee.id = c.callee_id
+         WHERE c.id = ? AND (c.caller_id = ? OR c.callee_id = ?)`,
+        [callId, userId, userId]
+    );
+    return rows.length ? rows[0] : null;
+}
+
 async function getFilteredCallHistory({ userId, role, filter, search, page = 1, limit = 20 }) {
     const offset = (page - 1) * limit;
     const conditions = ["(c.caller_id = ? OR c.callee_id = ?)"];
@@ -273,4 +287,4 @@ async function getFilteredCallHistory({ userId, role, filter, search, page = 1, 
     return { calls: rows, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
-module.exports = { findCallByUserId, isBusy, validateRoles, checkCallPermission, checkBalance, chargeForCall, calcCost, getFilteredCallHistory };
+module.exports = { findCallByUserId, isBusy, validateRoles, checkCallPermission, checkBalance, chargeForCall, calcCost, getCallById, getFilteredCallHistory };

@@ -39,7 +39,7 @@ exports.getProfile = (req, res) => {
         WHERE id = ?`,
         [userId],
         (err, result) => {
-            if (err) return res.status(500).json({ message: "Database error" });
+            if (err) return res.status(500).json({ message: "An internal server error occurred." });
             if (!result || result.length === 0) return res.status(404).json({ message: "User not found" });
             return res.json(result[0]);
         }
@@ -143,7 +143,7 @@ exports.updateProfile = (req, res) => {
         `UPDATE users SET ${setClauses.join(", ")} WHERE id = ?`,
         values,
         (err) => {
-            if (err) return res.status(500).json({ message: "Database error" });
+            if (err) return res.status(500).json({ message: "An internal server error occurred." });
             // return updated
             db.query(
                 `SELECT 
@@ -166,7 +166,7 @@ exports.updateProfile = (req, res) => {
                  FROM users WHERE id = ?`,
                 [userId],
                 (err2, result2) => {
-                    if (err2) return res.status(500).json({ message: "Database error" });
+                    if (err2) return res.status(500).json({ message: "An internal server error occurred." });
                     return res.json(result2[0]);
                 }
             );

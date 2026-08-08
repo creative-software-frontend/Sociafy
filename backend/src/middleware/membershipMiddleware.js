@@ -123,7 +123,7 @@ function requireFeature(featureName) {
 
       return next();
     } catch (err) {
-      return res.status(500).json({ message: err.message || "Membership check failed" });
+      return res.status(500).json({ message: "Membership check failed" });
     }
   };
 }

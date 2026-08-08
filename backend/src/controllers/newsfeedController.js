@@ -1,4 +1,5 @@
 const newsfeedService = require("../services/newsfeedService");
+const { handleError } = require("../utils/httpError");
 
 async function getPosts(req, res) {
     try {
@@ -6,7 +7,7 @@ async function getPosts(req, res) {
         const result = await newsfeedService.getPosts(req.user.id, page, limit);
         res.json(result);
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message });
+        return handleError(res, err);
     }
 }
 
@@ -16,7 +17,7 @@ async function createPost(req, res) {
         const post = await newsfeedService.createPost(req.user.id, content, image_url);
         res.status(201).json(post);
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message });
+        return handleError(res, err);
     }
 }
 
@@ -25,7 +26,7 @@ async function deletePost(req, res) {
         const result = await newsfeedService.deletePost(req.user.id, req.params.id);
         res.json(result);
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message });
+        return handleError(res, err);
     }
 }
 
@@ -34,7 +35,7 @@ async function toggleLike(req, res) {
         const result = await newsfeedService.toggleLike(req.user.id, req.params.id);
         res.json(result);
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message });
+        return handleError(res, err);
     }
 }
 
@@ -44,7 +45,7 @@ async function getComments(req, res) {
         const result = await newsfeedService.getComments(req.params.id, page, limit);
         res.json(result);
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message });
+        return handleError(res, err);
     }
 }
 
@@ -54,7 +55,7 @@ async function addComment(req, res) {
         const comment = await newsfeedService.addComment(req.user.id, req.params.id, content);
         res.status(201).json(comment);
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message });
+        return handleError(res, err);
     }
 }
 
@@ -63,7 +64,7 @@ async function sharePost(req, res) {
         const result = await newsfeedService.sharePost(req.user.id, req.params.id);
         res.json(result);
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message });
+        return handleError(res, err);
     }
 }
 

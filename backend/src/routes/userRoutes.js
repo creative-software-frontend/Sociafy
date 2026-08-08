@@ -10,6 +10,7 @@ const { validateEventJoin } = require("../services/eventJoinService");
 const { getProfile, updateProfile } = require("../controllers/profileController");
 const { changePassword } = require("../controllers/authController");
 const { passwordChangeLimiter } = require("../config/rateLimits");
+const { handleError } = require("../utils/httpError");
 
 function parseCsvInterests(value) {
     if (!value) return [];
@@ -173,11 +174,11 @@ router.get("/search", authMiddleware, requireFeature("PARTNER_SEARCH"), async (r
     `;
 
     db.query(countSql, params, (countErr, countRows) => {
-        if (countErr) return res.status(500).json({ message: 'Database error' });
+        if (countErr) return res.status(500).json({ message: "An internal server error occurred." });
         const total = countRows?.[0]?.total ?? 0;
 
         db.query(listSql, [...params, sizeNum, offset], (listErr, users) => {
-            if (listErr) return res.status(500).json({ message: 'Database error' });
+            if (listErr) return res.status(500).json({ message: "An internal server error occurred." });
             res.json({
                 total,
                 page: pageNum,
@@ -204,7 +205,7 @@ router.post("/match-request", authMiddleware, (req, res) => {
         "SELECT status FROM match_requests WHERE sender_id = ? AND receiver_id = ? ORDER BY created_at DESC LIMIT 1",
         [senderId, receiverId],
         (err, rows) => {
-            if (err) return res.status(500).json({ message: 'Database error' });
+            if (err) return res.status(500).json({ message: "An internal server error occurred." });
 
             if (rows && rows.length > 0) {
                 const status = rows[0].status;
@@ -221,7 +222,7 @@ router.post("/match-request", authMiddleware, (req, res) => {
                 "SELECT status FROM match_requests WHERE sender_id = ? AND receiver_id = ? AND status IN ('accepted') LIMIT 1",
                 [receiverId, senderId],
                 (err2, rows2) => {
-                    if (err2) return res.status(500).json({ message: 'Database error' });
+                    if (err2) return res.status(500).json({ message: "An internal server error occurred." });
                     if (rows2 && rows2.length > 0) {
                         return res.status(400).json({ message: 'Already matched' });
                     }
@@ -230,7 +231,7 @@ router.post("/match-request", authMiddleware, (req, res) => {
                         "INSERT INTO match_requests (sender_id, receiver_id, status) VALUES (?, ?, 'pending')",
                         [senderId, receiverId],
                         (err3) => {
-                            if (err3) return res.status(500).json({ message: 'Database error' });
+                            if (err3) return res.status(500).json({ message: "An internal server error occurred." });
                             res.json({ message: 'Match request sent' });
                         }
                     );
@@ -285,9 +286,9 @@ router.get("/match-request", authMiddleware, (req, res) => {
     `;
 
     db.query(incomingSql, [userId], (inErr, incomingRows) => {
-        if (inErr) return res.status(500).json({ message: 'Database error' });
+        if (inErr) return res.status(500).json({ message: "An internal server error occurred." });
         db.query(outgoingSql, [userId], (outErr, outgoingRows) => {
-            if (outErr) return res.status(500).json({ message: 'Database error' });
+            if (outErr) return res.status(500).json({ message: "An internal server error occurred." });
             res.json({ incoming: incomingRows || [], outgoing: outgoingRows || [] });
         });
     });
@@ -302,7 +303,7 @@ router.post("/match-request/:id/accept", authMiddleware, (req, res) => {
         "SELECT receiver_id, sender_id, status FROM match_requests WHERE id = ? LIMIT 1",
         [id],
         (err, rows) => {
-            if (err) return res.status(500).json({ message: 'Database error' });
+            if (err) return res.status(500).json({ message: "An internal server error occurred." });
             if (!rows || rows.length === 0) return res.status(404).json({ message: 'Request not found' });
 
             const row = rows[0];
@@ -317,7 +318,7 @@ router.post("/match-request/:id/accept", authMiddleware, (req, res) => {
                 "UPDATE match_requests SET status = 'accepted' WHERE id = ?",
                 [id],
                 (uErr) => {
-                    if (uErr) return res.status(500).json({ message: 'Database error' });
+                    if (uErr) return res.status(500).json({ message: "An internal server error occurred." });
                     res.json({ message: 'Request accepted', match_request_id: id });
                 }
             );
@@ -334,7 +335,7 @@ router.post("/match-request/:id/reject", authMiddleware, (req, res) => {
         "SELECT receiver_id FROM match_requests WHERE id = ? LIMIT 1",
         [id],
         (err, rows) => {
-            if (err) return res.status(500).json({ message: 'Database error' });
+            if (err) return res.status(500).json({ message: "An internal server error occurred." });
             if (!rows || rows.length === 0) return res.status(404).json({ message: 'Request not found' });
 
             if (rows[0].receiver_id !== userId) {
@@ -345,7 +346,7 @@ router.post("/match-request/:id/reject", authMiddleware, (req, res) => {
                 "UPDATE match_requests SET status = 'rejected' WHERE id = ?",
                 [id],
                 (uErr) => {
-                    if (uErr) return res.status(500).json({ message: 'Database error' });
+                    if (uErr) return res.status(500).json({ message: "An internal server error occurred." });
                     res.json({ message: 'Request rejected', match_request_id: id });
                 }
             );
@@ -363,7 +364,7 @@ router.get("/wallet", authMiddleware, (req, res) => {
         "SELECT balance, earnings, role FROM users WHERE id = ?",
         [userId],
         (err, userResult) => {
-            if (err) return res.status(500).json({ message: "Database error" });
+            if (err) return res.status(500).json({ message: "An internal server error occurred." });
             if (userResult.length === 0) return res.status(404).json({ message: "User not found" });
 
             const user = userResult[0];
@@ -372,7 +373,7 @@ router.get("/wallet", authMiddleware, (req, res) => {
                 "SELECT id, type, amount, status, description, created_at FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 50",
                 [userId],
                 (err2, txResult) => {
-                    if (err2) return res.status(500).json({ message: "Database error" });
+                    if (err2) return res.status(500).json({ message: "An internal server error occurred." });
 
                     // Seed provider with initial active mockup transactions if empty
                     if (user.role === "provider" && (!txResult || txResult.length === 0)) {
@@ -434,7 +435,7 @@ router.post("/deposit", authMiddleware, async (req, res) => {
         res.status(201).json(result);
     } catch (error) {
         const status = error.statusCode || 500;
-        res.status(status).json({ message: error.message || "Deposit request failed" });
+        return handleError(res, error, "Deposit request failed");
     }
 });
 
@@ -445,7 +446,7 @@ router.post("/withdraw", authMiddleware, async (req, res) => {
         res.status(201).json(result);
     } catch (error) {
         const status = error.statusCode || 500;
-        res.status(status).json({ message: error.message || "Withdrawal request failed" });
+        return handleError(res, error, "Withdrawal request failed");
     }
 });
 
@@ -462,7 +463,7 @@ router.get("/events", authMiddleware, (req, res) => {
          ORDER BY e.date_time ASC`,
         [userId],
         (err, rows) => {
-            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            if (err) return handleError(res, err);
             res.json(rows);
         }
     );
@@ -570,7 +571,7 @@ router.post("/events/:id/join", authMiddleware, requireFeature("EVENT_ACCESS"), 
         res.json({ message: "Successfully joined the event" });
     } catch (error) {
         await connection.rollback();
-        res.status(500).json({ message: "Database error: " + error.message });
+        return handleError(res, error);
     } finally {
         connection.release();
     }
@@ -585,7 +586,7 @@ router.post("/events/:id/leave", authMiddleware, (req, res) => {
         "DELETE FROM event_participants WHERE event_id = ? AND user_id = ?",
         [eventId, userId],
         (err, result) => {
-            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            if (err) return handleError(res, err);
             if (result.affectedRows === 0) {
                 return res.status(400).json({ message: "You are not a participant in this event" });
             }
@@ -608,7 +609,7 @@ router.get("/providers", authMiddleware, (req, res) => {
          LIMIT 50`,
         [userId],
         (err, rows) => {
-            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            if (err) return handleError(res, err);
             res.json(rows || []);
         }
     );
@@ -628,7 +629,7 @@ router.get("/event-locations", authMiddleware, (req, res) => {
          ORDER BY next_event ASC, event_count DESC
          LIMIT 20`,
         (err, rows) => {
-            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            if (err) return handleError(res, err);
             res.json(rows || []);
         }
     );
@@ -648,7 +649,7 @@ router.get("/joined-events", authMiddleware, (req, res) => {
          ORDER BY e.date_time ASC`,
         [userId],
         (err, rows) => {
-            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            if (err) return handleError(res, err);
             res.json(rows || []);
         }
     );
@@ -698,7 +699,7 @@ router.get("/recent-activity", authMiddleware, (req, res) => {
         LIMIT 10`,
         [userId, userId],
         (err, rows) => {
-            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            if (err) return handleError(res, err);
             res.json(rows || []);
         }
     );
@@ -723,7 +724,7 @@ router.get("/featured-providers", authMiddleware, (req, res) => {
          LIMIT 12`,
         [userId],
         (err, rows) => {
-            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            if (err) return handleError(res, err);
             res.json(rows || []);
         }
     );

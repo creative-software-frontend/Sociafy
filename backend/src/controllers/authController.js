@@ -21,6 +21,11 @@ exports.register = async (req, res) => {
         return res.status(400).json({ message: "All fields required" });
     }
 
+    // Enforce a reasonable minimum password length.
+    if (typeof password !== "string" || password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters." });
+    }
+
     // ✅ Validate Bangladesh mobile number (digits only, +880 prefix enforced)
     const normalizedPhone = String(phone).replace(/\D/g, "");
     const bdPhone = normalizedPhone.startsWith("880")
@@ -34,7 +39,7 @@ exports.register = async (req, res) => {
     const assignedRole = allowedRoles.includes(role) ? role : "user";
 
     db.query("SELECT email FROM users WHERE email = ?", [email], async (err, result) => {
-        if (err) return res.status(500).json({ message: "Database error" });
+        if (err) return res.status(500).json({ message: "An internal server error occurred." });
         if (result.length > 0) {
             return res.status(400).json({ message: "User already exists" });
         }
@@ -45,7 +50,7 @@ exports.register = async (req, res) => {
             "INSERT INTO users (name, email, phone, password, role, privacy_accepted, privacy_accepted_at) VALUES (?, ?, ?, ?, ?, ?, NOW())",
             [name, email, phone, hashedPassword, assignedRole, 1],
             (err, result) => {
-                if (err) return res.status(500).json({ message: "Database error" });
+                if (err) return res.status(500).json({ message: "An internal server error occurred." });
 
                 const userId = result.insertId;
                 
@@ -76,7 +81,7 @@ exports.login = (req, res) => {
     }
 
     db.query("SELECT * FROM users WHERE email = ?", [email], async (err, result) => {
-        if (err) return res.status(500).json({ message: "Database error" });
+        if (err) return res.status(500).json({ message: "An internal server error occurred." });
         if (result.length === 0) {
             return res.status(400).json({ message: "Invalid credentials" });
         }
@@ -129,11 +134,11 @@ exports.changePassword = (req, res) => {
         });
     }
 
-    // This project limits passwords to exactly 8 characters during signup.
-    if (newPassword.length !== 8) {
+    // Reasonable minimum password length (consistent with registration).
+    if (newPassword.length < 6) {
         return res.status(400).json({
             success: false,
-            message: "Password must be exactly 8 characters."
+            message: "Password must be at least 6 characters."
         });
     }
 
@@ -141,7 +146,7 @@ exports.changePassword = (req, res) => {
         "SELECT password FROM users WHERE id = ?",
         [userId],
         async (err, result) => {
-            if (err) return res.status(500).json({ success: false, message: "Database error" });
+            if (err) return res.status(500).json({ success: false, message: "An internal server error occurred." });
             if (!result || result.length === 0) {
                 return res.status(404).json({ success: false, message: "User not found" });
             }
@@ -172,7 +177,7 @@ exports.changePassword = (req, res) => {
                 "UPDATE users SET password = ? WHERE id = ?",
                 [hashedPassword, userId],
                 (err) => {
-                    if (err) return res.status(500).json({ success: false, message: "Database error" });
+                    if (err) return res.status(500).json({ success: false, message: "An internal server error occurred." });
                     return res.json({
                         success: true,
                         message: "Password changed successfully."

@@ -1,9 +1,14 @@
+const db = require("../config/db");
 const callService = require("../services/callService");
+const { handleError } = require("../utils/httpError");
 
 async function getHistory(req, res) {
     try {
         const userId = req.user.id;
-        const role = req.user.role;
+        // Resolve role from the database, not the (potentially stale) JWT claim,
+        // so a user demoted after login cannot keep admin-level access.
+        const [rows] = await db.query("SELECT role FROM users WHERE id = ?", [userId]);
+        const role = rows.length ? rows[0].role : req.user.role;
         const { filter, search, page, limit } = req.query;
         const result = await callService.getFilteredCallHistory({
             userId,
@@ -15,7 +20,7 @@ async function getHistory(req, res) {
         });
         return res.json(result);
     } catch (err) {
-        return res.status(500).json({ message: err.message || "Failed to fetch call history" });
+        return handleError(res, err, "Failed to fetch call history");
     }
 }
 
@@ -34,7 +39,7 @@ async function getCall(req, res) {
 
         return res.json({ call });
     } catch (err) {
-        return res.status(500).json({ message: err.message || "Failed to fetch call" });
+        return handleError(res, err, "Failed to fetch call");
     }
 }
 

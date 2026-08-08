@@ -33,8 +33,6 @@ async function request<T>(
 
         const json = await res.json().catch(() => ({}));
 
-        console.log('[membershipApi request]', { path, resOk: res.ok, status: res.status, json });
-
         if (res.status === 429) {
             return {
                 status: 429,

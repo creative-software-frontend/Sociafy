@@ -1,6 +1,7 @@
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
+const crypto = require("crypto");
 
 const ALLOWED_MIME = new Set([
     "image/jpeg",
@@ -24,7 +25,7 @@ function getExtFromOriginalName(originalName = "") {
 
 function makeUniqueFilename({ ext }) {
     const now = Date.now();
-    const rand = Math.random().toString(16).slice(2);
+    const rand = crypto.randomBytes(8).toString("hex");
     return `img_${now}_${rand}${ext}`;
 }
 

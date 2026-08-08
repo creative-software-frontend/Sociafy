@@ -395,7 +395,6 @@ async function getUserPackages() {
      ORDER BY membership_level ASC, price ASC
   `);
 
-  console.log("[DB RESULT USER]", packages);
   return normalizePackagesWithFeatures({ packages });
 }
 
@@ -404,10 +403,9 @@ async function getProviderPackages() {
     `SELECT id, name, description, price, duration_days, duration_months, tier_type, membership_level, type, is_active, created_at
      FROM packages
      WHERE type = 'provider' AND is_active = 1
-     ORDER BY membership_level ASC, price ASC
-  `);
+ORDER BY membership_level ASC, price ASC
+    `);
 
-  console.log("[DB RESULT PROVIDER]", packages);
   return normalizePackagesWithFeatures({ packages });
 }
 

@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 require("dotenv").config();
 
 // Fail fast if required production variables are missing/invalid.
@@ -25,6 +26,10 @@ if (trustProxy !== undefined && trustProxy !== "") {
 }
 
 const corsOrigins = envConfig.getCorsOrigins();
+// Security headers. CSP is intentionally left off so WebRTC, external fonts,
+// Socket.IO and uploads keep working; Helmet still adds HSTS, nosniff, frame
+// protections, etc.
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
     origin(origin, cb) {
         // Allow same-origin / non-browser requests (curl, server-to-server) and
@@ -74,6 +79,17 @@ app.use("/api/admin/gifts", require("./routes/giftRoutes").adminRouter);
 // 404
 app.use((req, res) => {
     res.status(404).json({ message: "Route not found" });
+});
+
+// Global error handler: log details server-side, return a generic message to
+// the client for 5xx. Preserves intentional 4xx error messages.
+app.use((err, req, res, next) => {
+    const status = err && err.statusCode ? Number(err.statusCode) : 500;
+    console.error("[server error]", status, err && err.message);
+    if (status >= 500) {
+        return res.status(500).json({ message: "An internal server error occurred." });
+    }
+    return res.status(status).json({ message: (err && err.message) || "An internal server error occurred." });
 });
 
 const PORT = process.env.PORT || 5000;

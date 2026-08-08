@@ -51,7 +51,12 @@ function validateEnv() {
         throw new Error("CORS_ORIGIN must not contain '*' when credentials are enabled");
     }
 
-    if (String(process.env.JWT_SECRET || "").trim().length < 16) {
+    const secretLen = String(process.env.JWT_SECRET || "").trim().length;
+    const isProduction = process.env.NODE_ENV === "production";
+    if (secretLen < 16) {
+        if (isProduction) {
+            throw new Error("JWT_SECRET is too weak. Use a random secret of at least 16 characters in production.");
+        }
         console.warn("[config] WARNING: JWT_SECRET is short. Use a strong random secret in production.");
     }
 

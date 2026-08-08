@@ -3,6 +3,7 @@ const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 const db = require("../config/db");
+const { handleError } = require("../utils/httpError");
 
 // ─── Helper: fetch packages with their normalized features ────────────────────
 async function getPackagesWithFeatures(whereClause = '', params = []) {
@@ -69,7 +70,7 @@ router.get("/users-summary",
                 providers
             });
         } catch (err) {
-            res.status(500).json({ message: err.message });
+            return handleError(res, err);
         }
     }
 );
@@ -89,7 +90,7 @@ router.get("/packages/public", async (req, res) => {
         });
         res.json(packages);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        return handleError(res, err);
     }
 });
 
@@ -102,7 +103,7 @@ router.get("/packages",
             const packages = await getPackagesWithFeatures();
             res.json(packages);
         } catch (err) {
-            res.status(500).json({ message: err.message });
+            return handleError(res, err);
         }
     }
 );
@@ -118,7 +119,7 @@ router.get("/features",
             );
             res.json(rows);
         } catch (err) {
-            res.status(500).json({ message: err.message });
+            return handleError(res, err);
         }
     }
 );
@@ -178,7 +179,7 @@ router.post("/packages",
             res.status(201).json({ id: packageId });
         } catch (err) {
             await connection.rollback();
-            res.status(500).json({ message: err.message });
+            return handleError(res, err);
         } finally {
             connection.release();
         }
@@ -243,7 +244,7 @@ router.put("/packages/:id",
             res.json({ message: 'Updated', id: req.params.id });
         } catch (err) {
             await connection.rollback();
-            res.status(500).json({ message: err.message });
+            return handleError(res, err);
         } finally {
             connection.release();
         }
@@ -260,7 +261,7 @@ router.delete("/packages/:id",
             await db.query("DELETE FROM packages WHERE id=?", [req.params.id]);
             res.json({ message: "Deleted" });
         } catch (err) {
-            res.status(500).json({ message: err.message });
+            return handleError(res, err);
         }
     }
 );
@@ -277,7 +278,7 @@ router.put("/users/:id/toggle-active",
             await db.query("UPDATE users SET is_active=? WHERE id=?", [newStatus, req.params.id]);
             res.json({ is_active: newStatus });
         } catch (err) {
-            res.status(500).json({ message: err.message });
+            return handleError(res, err);
         }
     }
 );
@@ -349,7 +350,7 @@ router.get("/reports",
                 ledger,
             });
         } catch (err) {
-            res.status(500).json({ message: err.message });
+            return handleError(res, err);
         }
     }
 );
@@ -365,7 +366,7 @@ router.get("/platform-settings",
             const rates = await platformSettingsService.getCallRates();
             res.json(rates);
         } catch (err) {
-            res.status(500).json({ message: err.message || "Failed to fetch platform settings" });
+            return handleError(res, err, "Failed to fetch platform settings");
         }
     }
 );
@@ -391,7 +392,7 @@ router.put("/platform-settings",
                 call_rate_per_second: platformSettingsService.perSecond(updated),
             });
         } catch (err) {
-            res.status(500).json({ message: err.message || "Failed to update platform settings" });
+            return handleError(res, err, "Failed to update platform settings");
         }
     }
 );
