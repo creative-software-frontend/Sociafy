@@ -110,43 +110,85 @@ async function chargeForCall(callLogId, callerId, calleeId, durationSeconds, { e
 
         // Cost uses the dynamic platform call rate
         const rate = await platformSettingsService.getCallRate();
-        const totalCost = calcCost(durationSeconds, rate);
-        const callerCost = Math.round((totalCost / 2) * 100) / 100;
-        const receiverCost = Math.round((totalCost / 2) * 100) / 100;
 
-        // Lock both user rows so concurrent billing attempts cannot double-spend
-        await connection.query(
-            "SELECT id FROM users WHERE id IN (?, ?) FOR UPDATE",
-            [callerId, calleeId]
+        // Lock both user rows so concurrent billing attempts cannot double-spend,
+        // and read their authoritative current balances.
+        const [callerRows] = await connection.query(
+            "SELECT balance FROM users WHERE id = ? FOR UPDATE",
+            [callerId]
         );
+        const [recvRows] = await connection.query(
+            "SELECT balance FROM users WHERE id = ? FOR UPDATE",
+            [calleeId]
+        );
+        const callerBalance = Math.max(0, Number(callerRows[0]?.balance) || 0);
+        const receiverBalance = Math.max(0, Number(recvRows[0]?.balance) || 0);
 
-        // Deduct caller balance
+        // Each party pays (rate/2) per minute, i.e. rate/120 per second.
+        // Max seconds a balance B can fund = B * 120 / rate.
+        const maxAffordableSeconds = Math.min(
+            callerBalance * 120 / rate,
+            receiverBalance * 120 / rate,
+            durationSeconds
+        );
+        let billableSeconds = Math.floor(Math.max(0, maxAffordableSeconds));
+
+        // Cent-based split guarantees callerCost + receiverCost === totalCost exactly.
+        const computeCosts = (secs) => {
+            const totalCents = Math.round((secs / 60) * rate * 100);
+            const callerCents = Math.round(totalCents / 2);
+            const receiverCents = totalCents - callerCents;
+            return {
+                totalCents,
+                callerCents,
+                receiverCents,
+            };
+        };
+
+        let costs = computeCosts(billableSeconds);
+        // Guard against cent-rounding pushing a share above the party's balance.
+        while (
+            billableSeconds > 0 &&
+            (costs.callerCents / 100 > callerBalance || costs.receiverCents / 100 > receiverBalance)
+        ) {
+            billableSeconds -= 1;
+            costs = computeCosts(billableSeconds);
+        }
+
+        const totalCost = costs.totalCents / 100;
+        const callerCost = costs.callerCents / 100;
+        const receiverCost = costs.receiverCents / 100;
+
+        // Deduct caller balance (guaranteed not to go negative)
         await connection.query("UPDATE users SET balance = balance - ? WHERE id = ?", [callerCost, callerId]);
 
-        // Deduct receiver balance
+        // Deduct receiver balance (guaranteed not to go negative)
         await connection.query("UPDATE users SET balance = balance - ? WHERE id = ?", [receiverCost, calleeId]);
 
-        // Caller transaction
-        await connection.query(
-            "INSERT INTO transactions (user_id, type, amount, status, description, created_at) VALUES (?, 'audio_call', ?, 'completed', ?, NOW())",
-            [callerId, -callerCost, `Audio call charge (#${callLogId})`]
-        );
+        if (callerCost > 0) {
+            // Caller transaction
+            await connection.query(
+                "INSERT INTO transactions (user_id, type, amount, status, description, created_at) VALUES (?, 'audio_call', ?, 'completed', ?, NOW())",
+                [callerId, -callerCost, `Audio call charge (#${callLogId})`]
+            );
+        }
+        if (receiverCost > 0) {
+            // Receiver transaction
+            await connection.query(
+                "INSERT INTO transactions (user_id, type, amount, status, description, created_at) VALUES (?, 'audio_call', ?, 'completed', ?, NOW())",
+                [calleeId, -receiverCost, `Audio call charge (#${callLogId})`]
+            );
+        }
 
-        // Receiver transaction
-        await connection.query(
-            "INSERT INTO transactions (user_id, type, amount, status, description, created_at) VALUES (?, 'audio_call', ?, 'completed', ?, NOW())",
-            [calleeId, -receiverCost, `Audio call charge (#${callLogId})`]
-        );
-
-        // Finalise call_log cost fields atomically
+        // Finalise call_log cost fields atomically (duration recorded = billable portion)
         await connection.query(
             `UPDATE call_logs SET cost = ?, caller_cost = ?, receiver_cost = ?,
                  ended_at = COALESCE(?, ended_at), duration_seconds = COALESCE(?, duration_seconds), ended_by = COALESCE(?, ended_by)
              WHERE id = ?`,
-            [totalCost, callerCost, receiverCost, endedAt || null, durationSeconds, endedBy || null, callLogId]
+            [totalCost, callerCost, receiverCost, endedAt || null, billableSeconds, endedBy || null, callLogId]
         );
 
-        // Credit Admin Wallet with the full call cost on the SAME connection/transaction
+        // Credit Admin Wallet with the full (billable) call cost on the SAME connection/transaction
         if (totalCost > 0) {
             await adminWalletService.credit(
                 totalCost,
@@ -158,7 +200,7 @@ async function chargeForCall(callLogId, callerId, calleeId, durationSeconds, { e
         }
 
         await connection.commit();
-        return { totalCost, callerCost, receiverCost };
+        return { totalCost, callerCost, receiverCost, billableSeconds, durationSeconds };
     } catch (err) {
         await connection.rollback();
         throw err;

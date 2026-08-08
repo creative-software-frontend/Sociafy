@@ -288,6 +288,20 @@ export function useCallManager(
             setTimeout(() => dispatch({ type: 'RESET' }), 1000);
         };
 
+        // Balance watchdog on server ended the call — clean up everything now.
+        const onBalanceExhausted = () => {
+            webRTC.stopStatsMonitor();
+            webRTC.unregisterDeviceChange();
+            webRTC.cleanup();
+            if (reconnectTimerRef.current) { clearTimeout(reconnectTimerRef.current); reconnectTimerRef.current = null; }
+            clearConnectTimeout();
+            reconnectingRef.current = false;
+            qualityCb.onReconnect(false);
+            qualityCb.onConnectionLost(false);
+            dispatch({ type: 'SET_ENDED' });
+            setTimeout(() => dispatch({ type: 'RESET' }), 1000);
+        };
+
         const onRejected = () => {
             webRTC.stopStatsMonitor();
             webRTC.unregisterDeviceChange();
@@ -342,6 +356,7 @@ export function useCallManager(
         socket.on('call:answer', onAnswer);
         socket.on('call:ice-candidate', onIceCandidate);
         socket.on('call:ended', onEnded);
+        socket.on('call:balance-exhausted', onBalanceExhausted);
         socket.on('call:rejected', onRejected);
         socket.on('call:busy', onBusy);
         socket.on('call:cancelled', onCancelled);
@@ -354,6 +369,7 @@ export function useCallManager(
             socket.off('call:answer', onAnswer);
             socket.off('call:ice-candidate', onIceCandidate);
             socket.off('call:ended', onEnded);
+            socket.off('call:balance-exhausted', onBalanceExhausted);
             socket.off('call:rejected', onRejected);
             socket.off('call:busy', onBusy);
             socket.off('call:cancelled', onCancelled);

@@ -1,5 +1,6 @@
 const db = require("../config/db");
 const callService = require("../services/callService");
+const platformSettingsService = require("../services/platformSettingsService");
 
 function cleanupCall(activeCalls, callerId) {
     const call = activeCalls.get(callerId);
@@ -7,11 +8,14 @@ function cleanupCall(activeCalls, callerId) {
     if (call.timeoutRef) {
         clearTimeout(call.timeoutRef);
     }
+    if (call.watchdogTimer) {
+        clearInterval(call.watchdogTimer);
+    }
     activeCalls.delete(callerId);
     return call;
 }
 
-async function endCallAndBill(io, activeCalls, userId) {
+async function endCallAndBill(io, activeCalls, userId, reason = "ended") {
     const call = callService.findCallByUserId(activeCalls, userId);
     if (!call) return;
 
@@ -30,20 +34,67 @@ async function endCallAndBill(io, activeCalls, userId) {
         });
     }
 
+    if (reason === "balance-exhausted") {
+        io.to(`user_${callerId}`).emit("call:balance-exhausted", { caller_id: callerId, callee_id: calleeId });
+        if (otherId !== userId) {
+            io.to(`user_${otherId}`).emit("call:balance-exhausted", { caller_id: callerId, callee_id: calleeId });
+        }
+    }
+
     io.to(`user_${callerId}`).emit("call:ended", {
         caller_id: callerId,
         callee_id: calleeId,
-        reason: "ended",
+        reason,
         ended_by: userId,
     });
     if (otherId !== userId) {
         io.to(`user_${otherId}`).emit("call:ended", {
             caller_id: callerId,
             callee_id: calleeId,
-            reason: "ended",
+            reason,
             ended_by: userId,
         });
     }
+}
+
+/**
+ * Balance watchdog: while a connected call is active, periodically check that both
+ * parties still have enough balance to pay for the call. When the elapsed call
+ * duration reaches the amount the lower-balance party can fund, force the call to
+ * end BEFORE a negative balance can occur. chargeForCall() is the authoritative
+ * safety net (it caps billing to the affordable duration regardless of this timer).
+ */
+function startBalanceWatchdog(io, activeCalls, call) {
+    call.watchdogTimer = setInterval(async () => {
+        const current = activeCalls.get(call.callerId);
+        if (!current || current !== call || !call.startedAt) {
+            clearInterval(call.watchdogTimer);
+            call.watchdogTimer = null;
+            return;
+        }
+        try {
+            const rate = await platformSettingsService.getCallRate();
+            const [cRows] = await db.query("SELECT balance FROM users WHERE id = ?", [call.callerId]);
+            const [rRows] = await db.query("SELECT balance FROM users WHERE id = ?", [call.calleeId]);
+            const callerBalance = Math.max(0, Number(cRows[0]?.balance) || 0);
+            const receiverBalance = Math.max(0, Number(rRows[0]?.balance) || 0);
+
+            // Seconds each party can fund: balance * 120 / rate
+            const affordableSeconds = Math.min(
+                callerBalance * 120 / rate,
+                receiverBalance * 120 / rate
+            );
+            const elapsedSeconds = (Date.now() - call.startedAt.getTime()) / 1000;
+
+            if (elapsedSeconds >= affordableSeconds) {
+                clearInterval(call.watchdogTimer);
+                call.watchdogTimer = null;
+                await endCallAndBill(io, activeCalls, call.callerId, "balance-exhausted");
+            }
+        } catch (e) {
+            // transient errors are ignored; chargeForCall() is the authoritative cap
+        }
+    }, 3000);
 }
 
 function registerCallSocket(io, socket, onlineUsers, activeCalls) {
@@ -94,6 +145,7 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
             timeoutRef: null,
             callLogId: null,
             startedAt: null,
+            watchdogTimer: null,
         };
 
         activeCalls.set(callerId, callInfo);
@@ -189,6 +241,10 @@ function registerCallSocket(io, socket, onlineUsers, activeCalls) {
             [call.callerId, call.calleeId, call.callType || "audio", call.startedAt]
         );
         call.callLogId = result.insertId;
+
+        // Watch for balance exhaustion so the call is terminated before either
+        // wallet can go negative.
+        startBalanceWatchdog(io, activeCalls, call);
     });
 
     /* ───────── call:offer ───────── */
