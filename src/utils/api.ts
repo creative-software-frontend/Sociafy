@@ -1,5 +1,7 @@
 // Central API utility — all backend calls go through here
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_URL } from '../config/apiConfig';
+
+const BASE_URL = API_URL;
 
 interface ApiResponse<T = unknown> {
     data?: T;

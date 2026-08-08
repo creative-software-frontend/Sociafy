@@ -9,13 +9,10 @@ import {
     type UserProfile,
 } from "../../../utils/api";
 import { useEffect, useMemo, useState } from "react";
+import { resolveMediaUrl } from "../../../config/apiConfig";
 
 function toFullUploadUrl(url: string) {
-    if (!url) return url;
-    if (url.startsWith("/uploads/")) {
-        return `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${url}`;
-    }
-    return url;
+    return resolveMediaUrl(url);
 }
 
 

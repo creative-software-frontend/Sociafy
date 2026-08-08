@@ -1,3 +1,5 @@
+import { resolveMediaUrl } from '../../../../../config/apiConfig';
+
 export function FeaturedProfiles({
     profiles,
     loading,
@@ -17,11 +19,7 @@ export function FeaturedProfiles({
     isUser?: boolean;
 }) {
     const toFullUploadUrl = (url: string | null): string | undefined => {
-        if (!url) return undefined;
-        if (url.startsWith("/uploads/")) {
-            return `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${url}`;
-        }
-        return url;
+        return resolveMediaUrl(url) || undefined;
     };
 
     const getAge = (dob: string | null | undefined) => {

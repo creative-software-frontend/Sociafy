@@ -3,6 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { useCallManager } from '../hooks/useCallManager';
 import { useCallAudio } from '../hooks/useCallAudio';
+import { SOCKET_URL } from '../../../config/apiConfig';
 import { callReducer, INITIAL_CALL_STATE } from '../types/call';
 import { CallContext } from './callContextValue';
 import type { CallQuality, CallStats } from '../types/call';
@@ -32,7 +33,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const token = localStorage.getItem('bluedise_token');
         if (!token) return;
 
-        const backendUrl = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
+        const backendUrl = SOCKET_URL;
         const s = io(backendUrl, {
             auth: { token },
             transports: ['websocket'],

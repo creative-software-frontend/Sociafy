@@ -24,7 +24,9 @@ export interface CallHistoryResponse {
     totalPages: number;
 }
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_URL } from '../../../config/apiConfig';
+
+const BASE_URL = API_URL;
 
 async function request<T>(path: string): Promise<{ data?: T; error?: string }> {
     const token = localStorage.getItem('bluedise_token');

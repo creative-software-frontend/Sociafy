@@ -2,17 +2,27 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
+// Fail fast if required production variables are missing/invalid.
+const envConfig = require("./config/envConfig");
+try {
+    envConfig.validateEnv();
+} catch (err) {
+    console.error("[config] " + err.message);
+    process.exit(1);
+}
+
 const app = express();
 const db = require("./config/db");
 
+const corsOrigins = envConfig.getCorsOrigins();
 app.use(cors({
-    origin: [
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "http://localhost:5176",
-    ],
-    credentials: true
+    origin(origin, cb) {
+        // Allow same-origin / non-browser requests (curl, server-to-server) and
+        // any explicitly configured origin. Never `*` (credentials are enabled).
+        if (!origin || corsOrigins.includes(origin)) return cb(null, true);
+        return cb(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
 }));
 
 app.use(express.json());

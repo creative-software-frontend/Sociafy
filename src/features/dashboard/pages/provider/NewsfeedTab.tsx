@@ -2,10 +2,9 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Post, PostComment } from '../../../../utils/api';
 import { serviceApi, userApi } from '../../../../utils/api';
 import { Avatar } from './Avatar';
+import { API_ORIGIN } from '../../../../config/apiConfig';
 
-const BACKEND_ORIGIN = import.meta.env.VITE_API_URL
-    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')
-    : 'http://localhost:5000';
+const BACKEND_ORIGIN = API_ORIGIN;
 
 function toFullUrl(url: string | null | undefined): string | null {
     if (!url) return null;

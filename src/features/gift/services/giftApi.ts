@@ -1,6 +1,7 @@
 import type { Gift, GiftHistoryItem } from '../types/gift';
+import { API_URL } from '../../../config/apiConfig';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const BASE_URL = API_URL;
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<{ data?: T; error?: string }> {
     const token = localStorage.getItem('bluedise_token');

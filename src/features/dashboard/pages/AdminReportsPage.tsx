@@ -2,9 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { adminApi } from '../../../utils/api';
 import type { ReportsData } from '../../../utils/api';
 import { motion } from 'framer-motion';
-
-// Build screenshot URLs using the same API base used for other backend requests.
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { resolveMediaUrl } from '../../../config/apiConfig';
 
 
 
@@ -241,18 +239,7 @@ export default function AdminReportsPage() {
     };
 
     const buildScreenshotUrl = useCallback((screenshotUrl?: string) => {
-        if (!screenshotUrl) return '';
-
-        // backend stores paths like: /uploads/deposits/abc123.png
-        if (screenshotUrl.startsWith('http://') || screenshotUrl.startsWith('https://')) return screenshotUrl;
-
-        // api base includes /api (e.g. http://localhost:5000/api), but static files are served from /uploads
-        // so we must use the origin without the /api suffix.
-        const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
-
-        if (screenshotUrl.startsWith('/')) return `${API_ORIGIN}${screenshotUrl}`;
-        // fallback: treat as relative to API origin
-        return `${API_ORIGIN}/${screenshotUrl}`;
+        return resolveMediaUrl(screenshotUrl);
     }, []);
 
 

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+import { SOCKET_URL } from '../../../config/apiConfig';
 import { useAuth } from '../../../context/AuthContext';
 import { useMembership } from '../../../context/MembershipContext';
 import { serviceApi, providerApi, userApi } from '../../../utils/api';
@@ -142,7 +143,7 @@ export function ChatPage() {
 
     useEffect(() => {
         const token = localStorage.getItem('bluedise_token');
-        const backendUrl = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
+        const backendUrl = SOCKET_URL;
 
         if (!token) return;
         const socket = io(backendUrl, {
