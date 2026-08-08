@@ -20,16 +20,14 @@ async function endCallAndBill(io, activeCalls, userId) {
 
     const otherId = userId === callerId ? calleeId : callerId;
 
-    // If a call log exists (call was connected), finalise duration + billing
+    // If a call log exists (call was connected), finalise duration + billing atomically
     if (call.callLogId && call.startedAt) {
         const endedAt = new Date();
         const durationSeconds = Math.floor((endedAt.getTime() - call.startedAt.getTime()) / 1000);
-        await db.query(
-            "UPDATE call_logs SET ended_at = ?, duration_seconds = ?, ended_by = ? WHERE id = ?",
-            [endedAt, durationSeconds, userId, call.callLogId]
-        );
-        // Charge both users
-        await callService.chargeForCall(call.callLogId, callerId, calleeId, durationSeconds);
+        await callService.chargeForCall(call.callLogId, callerId, calleeId, durationSeconds, {
+            endedAt,
+            endedBy: userId,
+        });
     }
 
     io.to(`user_${callerId}`).emit("call:ended", {

@@ -2,6 +2,7 @@ const db = require("../config/db");
 const { getPartnerRequestStatus } = require("../services/chatService");
 const { checkFeatureAccess } = require("../middleware/membershipMiddleware");
 const platformSettingsService = require("../services/platformSettingsService");
+const adminWalletService = require("../services/adminWalletService");
 
 function calcCost(durationSeconds, rate) {
     const cost = (durationSeconds / 60) * rate;
@@ -102,44 +103,68 @@ async function checkCallPermission({ callerId, calleeId, callerRole, calleeRole,
     }
 }
 
-async function chargeForCall(callLogId, callerId, calleeId, durationSeconds) {
-    const rate = await platformSettingsService.getCallRate();
-    const totalCost = calcCost(durationSeconds, rate);
-    const callerCost = Math.round((totalCost / 2) * 100) / 100;
-    const receiverCost = Math.round((totalCost / 2) * 100) / 100;
+async function chargeForCall(callLogId, callerId, calleeId, durationSeconds, { endedAt, endedBy } = {}) {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
 
-    // Deduct from both
-    await db.query("UPDATE users SET balance = balance - ? WHERE id = ?", [callerCost, callerId]);
-    await db.query("UPDATE users SET balance = balance - ? WHERE id = ?", [receiverCost, calleeId]);
+        // Cost uses the dynamic platform call rate
+        const rate = await platformSettingsService.getCallRate();
+        const totalCost = calcCost(durationSeconds, rate);
+        const callerCost = Math.round((totalCost / 2) * 100) / 100;
+        const receiverCost = Math.round((totalCost / 2) * 100) / 100;
 
-    // Insert transactions
-    await db.query(
-        "INSERT INTO transactions (user_id, type, amount, status, description, created_at) VALUES (?, 'audio_call', ?, 'completed', ?, NOW())",
-        [callerId, -callerCost, `Audio call charge (#${callLogId})`]
-    );
-    await db.query(
-        "INSERT INTO transactions (user_id, type, amount, status, description, created_at) VALUES (?, 'audio_call', ?, 'completed', ?, NOW())",
-        [calleeId, -receiverCost, `Audio call charge (#${callLogId})`]
-    );
-
-    // Update call_log with costs
-    await db.query(
-        "UPDATE call_logs SET cost = ?, caller_cost = ?, receiver_cost = ? WHERE id = ?",
-        [totalCost, callerCost, receiverCost, callLogId]
-    );
-
-    // Credit Admin Wallet with the TOTAL call charge (not split)
-    if (totalCost > 0) {
-        const adminWalletService = require("../services/adminWalletService");
-        await adminWalletService.credit(
-            totalCost,
-            "audio_call_income",
-            `Audio call income (#${callLogId})`,
-            callLogId
+        // Lock both user rows so concurrent billing attempts cannot double-spend
+        await connection.query(
+            "SELECT id FROM users WHERE id IN (?, ?) FOR UPDATE",
+            [callerId, calleeId]
         );
-    }
 
-    return { totalCost, callerCost, receiverCost };
+        // Deduct caller balance
+        await connection.query("UPDATE users SET balance = balance - ? WHERE id = ?", [callerCost, callerId]);
+
+        // Deduct receiver balance
+        await connection.query("UPDATE users SET balance = balance - ? WHERE id = ?", [receiverCost, calleeId]);
+
+        // Caller transaction
+        await connection.query(
+            "INSERT INTO transactions (user_id, type, amount, status, description, created_at) VALUES (?, 'audio_call', ?, 'completed', ?, NOW())",
+            [callerId, -callerCost, `Audio call charge (#${callLogId})`]
+        );
+
+        // Receiver transaction
+        await connection.query(
+            "INSERT INTO transactions (user_id, type, amount, status, description, created_at) VALUES (?, 'audio_call', ?, 'completed', ?, NOW())",
+            [calleeId, -receiverCost, `Audio call charge (#${callLogId})`]
+        );
+
+        // Finalise call_log cost fields atomically
+        await connection.query(
+            `UPDATE call_logs SET cost = ?, caller_cost = ?, receiver_cost = ?,
+                 ended_at = COALESCE(?, ended_at), duration_seconds = COALESCE(?, duration_seconds), ended_by = COALESCE(?, ended_by)
+             WHERE id = ?`,
+            [totalCost, callerCost, receiverCost, endedAt || null, durationSeconds, endedBy || null, callLogId]
+        );
+
+        // Credit Admin Wallet with the full call cost on the SAME connection/transaction
+        if (totalCost > 0) {
+            await adminWalletService.credit(
+                totalCost,
+                "audio_call_income",
+                `Audio call income (#${callLogId})`,
+                callLogId,
+                connection
+            );
+        }
+
+        await connection.commit();
+        return { totalCost, callerCost, receiverCost };
+    } catch (err) {
+        await connection.rollback();
+        throw err;
+    } finally {
+        connection.release();
+    }
 }
 
 async function getFilteredCallHistory({ userId, role, filter, search, page = 1, limit = 20 }) {
