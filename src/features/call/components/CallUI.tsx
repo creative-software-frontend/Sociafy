@@ -234,39 +234,43 @@ export function CallUI() {
                 {/* ─── Spacer ─── */}
                 <div style={{ flex: 1, minHeight: 20 }} />
 
-                {/* ─── Action button ─── */}
+                {/* ─── Cancel button ─── */}
                 {isPreConnection && (
-                    <button
-                        onClick={withLock(cancelCall)}
-                        aria-label="Cancel call"
-                        style={{
-                            width: 72,
-                            height: 72,
-                            borderRadius: '50%',
-                            border: 'none',
-                            background: '#ef4444',
-                            color: '#fff',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 6px 28px rgba(239,68,68,0.5)',
-                            transition: 'transform 0.15s, box-shadow 0.15s',
-                            animation: 'ripple 2s ease infinite',
-                            flexShrink: 0,
-                            WebkitTapHighlightColor: 'transparent',
-                        }}
-                        onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.92)'; }}
-                        onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-                        onTouchStart={e => { e.currentTarget.style.transform = 'scale(0.92)'; }}
-                        onTouchEnd={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-                        title="Cancel call"
-                    >
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(135deg)' }}>
-                            <line x1="22" y1="2" x2="2" y2="22" />
-                            <path d="M16 8A6 6 0 0 0 6 16" />
-                        </svg>
-                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                        <button
+                            onClick={withLock(cancelCall)}
+                            aria-label="Cancel call"
+                            title="Cancel call"
+                            style={{
+                                width: 64,
+                                height: 64,
+                                borderRadius: '50%',
+                                border: 'none',
+                                background: '#ef4444',
+                                color: '#fff',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 6px 24px rgba(239,68,68,0.45)',
+                                transition: 'transform 0.15s, box-shadow 0.15s',
+                                flexShrink: 0,
+                                WebkitTapHighlightColor: 'transparent',
+                            }}
+                            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.92)'; }}
+                            onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                            onTouchStart={e => { e.currentTarget.style.transform = 'scale(0.92)'; }}
+                            onTouchEnd={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                        >
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91" />
+                                <line x1="22" y1="2" x2="2" y2="22" />
+                            </svg>
+                        </button>
+                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.05em' }}>
+                            CANCEL
+                        </span>
+                    </div>
                 )}
 
                 {callState.status === 'connected' && (
