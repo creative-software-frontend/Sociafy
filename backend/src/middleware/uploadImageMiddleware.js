@@ -1,7 +1,5 @@
 const path = require("path");
-const fs = require("fs");
 const multer = require("multer");
-const crypto = require("crypto");
 
 const ALLOWED_MIME = new Set([
     "image/jpeg",
@@ -12,57 +10,17 @@ const ALLOWED_MIME = new Set([
 
 const ALLOWED_EXT = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 
-function ensureDirSync(dirPath) {
-    if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-    }
-}
+// Valid upload folders — object-key prefixes, never raw user paths.
+const ALLOWED_FOLDERS = new Set(["avatars", "posts", "deposits"]);
 
 function getExtFromOriginalName(originalName = "") {
-    const ext = path.extname(originalName).toLowerCase();
-    return ext;
+    return path.extname(originalName).toLowerCase();
 }
 
-function makeUniqueFilename({ ext }) {
-    const now = Date.now();
-    const rand = crypto.randomBytes(8).toString("hex");
-    return `img_${now}_${rand}${ext}`;
-}
-
-function createUploadImageMiddleware() {
-    const uploadsRoot = path.join(process.cwd(), "uploads");
-    const avatarDir = path.join(uploadsRoot, "avatars");
-    const depositsDir = path.join(uploadsRoot, "deposits");
-    const postsDir = path.join(uploadsRoot, "posts");
-
-    // Ensure folders exist at startup
-    ensureDirSync(uploadsRoot);
-    ensureDirSync(avatarDir);
-    ensureDirSync(depositsDir);
-    ensureDirSync(postsDir);
-
-    const storage = multer.diskStorage({
-        destination: (req, file, cb) => {
-            // Decide folder based on requested type.
-            // Accepts: req.body.folder OR req.query.folder
-            const folder = String(req.body?.folder ?? req.query?.folder ?? "avatars");
-
-            let selected = avatarDir;
-            if (folder === "deposits") selected = depositsDir;
-            else if (folder === "posts") selected = postsDir;
-            cb(null, selected);
-        },
-        filename: (req, file, cb) => {
-            const ext = getExtFromOriginalName(file.originalname);
-            if (!ALLOWED_EXT.has(ext) || !ALLOWED_MIME.has(file.mimetype)) {
-                return cb(new Error("Invalid file type"));
-            }
-            const filename = makeUniqueFilename({ ext });
-            cb(null, filename);
-        },
-    });
-
-    const fileFilter = (req, file, cb) => {
+// Files are held in memory; the storage service (local or R2) writes the object.
+const upload = multer({
+    storage: multer.memoryStorage(),
+    fileFilter: (req, file, cb) => {
         const ext = getExtFromOriginalName(file.originalname);
         if (!ALLOWED_EXT.has(ext)) {
             return cb(new Error("Only jpg/jpeg/png/webp files are allowed"));
@@ -71,35 +29,23 @@ function createUploadImageMiddleware() {
             return cb(new Error("Only jpg/jpeg/png/webp files are allowed"));
         }
         cb(null, true);
-    };
+    },
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+    },
+});
 
-    const upload = multer({
-        storage,
-        fileFilter,
-        limits: {
-            fileSize: 5 * 1024 * 1024, // 5MB
-        },
-    });
+const uploadImageMiddleware = upload.single("image");
 
-    return upload.single("image");
-}
-
-const uploadImageMiddleware = createUploadImageMiddleware();
-
-function resolvePublicUrl(req) {
-    const folder = String(req.body?.folder ?? req.query?.folder ?? "avatars");
-    let safeFolder = "avatars";
-    if (folder === "deposits") safeFolder = "deposits";
-    else if (folder === "posts") safeFolder = "posts";
-
-    const filename = req.file?.filename;
-    if (!filename) return null;
-
-    return `/uploads/${safeFolder}/${filename}`;
+function resolveUploadFolder(req) {
+    const raw = String(req.body?.folder ?? req.query?.folder ?? "avatars").toLowerCase();
+    return ALLOWED_FOLDERS.has(raw) ? raw : "avatars";
 }
 
 module.exports = {
     uploadImageMiddleware,
-    resolvePublicUrl,
+    resolveUploadFolder,
+    ALLOWED_EXT,
+    ALLOWED_MIME,
+    ALLOWED_FOLDERS,
 };
-

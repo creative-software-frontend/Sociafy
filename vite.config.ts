@@ -15,6 +15,19 @@ export default defineConfig(({ mode }) => {
     )
   }
 
+  // Reject localhost/loopback API URLs in production so the deployed bundle can
+  // never silently target a developer machine.
+  if (
+    mode === 'production' &&
+    env.VITE_API_URL &&
+    /localhost|127\.0\.0\.1|::1/.test(env.VITE_API_URL)
+  ) {
+    throw new Error(
+      '[vite] Production build must not use a localhost API URL. ' +
+      'Set VITE_API_URL to the real production backend origin (e.g. VITE_API_URL=https://backend-host-url).',
+    )
+  }
+
   // Development is allowed to default to localhost so `npm run dev` works out
   // of the box (e.g. before a developer has created .env.development).
   const define: Record<string, string> = {}
