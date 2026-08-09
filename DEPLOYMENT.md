@@ -54,6 +54,7 @@ Backend startup refuses to run when a required variable is missing (`DB_HOST`,
 |-----------------|----------|----------------------------|-------|
 | `VITE_API_URL`  | **yes**  | `https://backend-host`     | Backend origin, **no path**. REST uses `${origin}/api`; Socket.IO uses `origin`. **Must not be localhost.** |
 
+
 The production build **fails** if `VITE_API_URL` is missing **or** points to
 `localhost` / `127.0.0.1`.
 
@@ -153,32 +154,18 @@ routes to `index.html` (SPA). A `vercel.json` SPA rewrite is already included.
 
 ## 10. Upload storage (IMPORTANT)
 
-Uploads are handled by a **storage service abstraction**
-(`backend/src/services/storageService.js`) with a provider selected by
-`STORAGE_PROVIDER`:
+`/uploads` is **local filesystem** storage (avatars, deposits screenshots, post
+images).
 
-- **`local`** (development default) — writes to `./uploads` and serves it via
-  Express. Files are **lost on restart** on Vercel / Render / Fly.io and are not
-  shared across instances.
-- **`supabase`** (production) — Supabase Storage (S3-compatible) via the
-  official AWS SDK. The bucket is `Sociafy-uploads` (public). Configure:
-  `SUPABASE_S3_ENDPOINT`, `SUPABASE_S3_REGION`, `SUPABASE_S3_ACCESS_KEY_ID`,
-  `SUPABASE_S3_SECRET_ACCESS_KEY`, `SUPABASE_STORAGE_BUCKET`,
-  `SUPABASE_STORAGE_PUBLIC_URL`. If `STORAGE_PROVIDER=supabase` and any of these
-  is missing, the backend **fails at startup** (no silent fallback to local).
+- **Vercel / Render / Fly.io**: the filesystem is **ephemeral** — files are lost
+  on restart and not shared across instances.
+- **Before launch you must add object storage** (S3, Cloudflare R2, Backblaze B2)
+  and change the upload middleware to write there instead of `./uploads`.
+  This is a **deployment blocker** for a durable, multi-instance production.
 
-**Before launch you must use `STORAGE_PROVIDER=supabase`** so uploads are
-durable and multi-instance-safe. Application/business code does not
-need to change when switching providers — only `STORAGE_PROVIDER` and the
-`SUPABASE_S3_*` / `SUPABASE_STORAGE_*` variables.
-
-Object keys are provider-independent (`avatars/<random>.<ext>`,
-`posts/<random>.<ext>`, `deposits/<random>.<ext>`), generated server-side with
-`crypto.randomBytes`; original filenames are never trusted. Local URLs remain
-`/uploads/...` (the frontend `resolveMediaUrl()` prefixes the origin); Supabase
-URLs are the public bucket base `${SUPABASE_STORAGE_PUBLIC_URL}/<key>` — never
-the S3 API endpoint. The provider's bucket comes exclusively from
-`SUPABASE_STORAGE_BUCKET` (currently `Sociafy-uploads`).
+If you accept a single-instance deployment with a persistent disk VOLUME,
+`/uploads` works, but that is operator-managed. Do **not** assume it on an
+ephemeral platform.
 
 ---
 
@@ -196,6 +183,6 @@ the S3 API endpoint. The provider's bucket comes exclusively from
 2. Set backend env (see §2), start with `NODE_ENV=production`.
 3. Set frontend `VITE_API_URL` to the real backend origin; `npm run build`.
 4. Deploy `dist/`; set CORS_ORIGIN to the frontend host.
-5. (Required before launch) Set `STORAGE_PROVIDER=supabase` (bucket `Sociafy-uploads`).
+5. (Required before launch) Replace `/uploads` with object storage.
 6. Seed the admin account (either `seed-admin.js` or via DB) and change its
    password immediately.
