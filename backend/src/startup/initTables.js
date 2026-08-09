@@ -331,6 +331,30 @@ module.exports = async (db) => {
         // 4. users  — depends on packages
         // ════════════════════════════════════════════════════════════
 
+        // Ensure the base users table exists before any ALTER TABLE users.
+        // On a fresh database this is created here (idempotently); the column
+        // adds below then apply the wallet/membership/profile columns.
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                email VARCHAR(255) NOT NULL UNIQUE,
+                phone VARCHAR(20) NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                role ENUM('user', 'provider', 'admin') DEFAULT 'user',
+                is_active TINYINT(1) DEFAULT 1,
+                privacy_accepted TINYINT(1) DEFAULT 0,
+                privacy_accepted_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_email (email),
+                INDEX idx_role (role),
+                INDEX idx_is_active (is_active),
+                INDEX idx_privacy_accepted (privacy_accepted),
+                INDEX idx_created_at (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
         // --- wallet columns ---
         const [userCols] = await db.query(
             "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'"
