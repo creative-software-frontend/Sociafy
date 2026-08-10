@@ -32,6 +32,10 @@ function makeLimiter({ windowMs, limit, keyGeneratorFn = keyGenerator }) {
 const authLoginLimiter = makeLimiter({ windowMs: 15 * 60 * 1000, limit: 10 });
 const authRegisterLimiter = makeLimiter({ windowMs: 60 * 60 * 1000, limit: 5 });
 
+/* ── Admin auth (IP-based for login, stricter than normal user login) ── */
+const adminAuthLoginLimiter = makeLimiter({ windowMs: 15 * 60 * 1000, limit: 10 });
+const adminPasswordChangeLimiter = makeLimiter({ windowMs: 15 * 60 * 1000, limit: 5 });
+
 /* ── Security-sensitive (authenticated user) ── */
 const passwordChangeLimiter = makeLimiter({ windowMs: 15 * 60 * 1000, limit: 5 });
 
@@ -64,6 +68,8 @@ function createSocketLimiter({ windowMs, max, scope }) {
 module.exports = {
     authLoginLimiter,
     authRegisterLimiter,
+    adminAuthLoginLimiter,
+    adminPasswordChangeLimiter,
     passwordChangeLimiter,
     financialLimiter,
     withdrawLimiter,

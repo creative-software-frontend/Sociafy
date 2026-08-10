@@ -92,6 +92,38 @@ export const authApi = {
         }),
 };
 
+// ── Admin auth endpoints (dedicated admin portal) ─────────────────────────────
+export interface AdminChangePasswordPayload {
+    currentPassword: string;
+    newPassword: string;
+}
+
+export interface AdminChangePasswordResponse {
+    success: boolean;
+    message: string;
+}
+
+export const adminAuthApi = {
+    login: (payload: LoginPayload) =>
+        request<AuthResponseData>('/admin/auth/login', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        }),
+
+    me: () => request<AuthResponseData>('/admin/auth/me'),
+
+    changePassword: (payload: AdminChangePasswordPayload) =>
+        request<AdminChangePasswordResponse>('/admin/auth/change-password', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        }),
+
+    logout: () =>
+        request<{ success: boolean; message: string }>('/admin/auth/logout', {
+            method: 'POST',
+        }),
+};
+
 export type TransactionType =
     | 'deposit'
     | 'withdraw'

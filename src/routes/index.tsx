@@ -35,6 +35,14 @@ export const router = createBrowserRouter([
       return { element: <ProviderRegisterPage /> };
     },
   },
+  {
+    path: "/admin/login",
+    errorElement: <ErrorPage />,
+    lazy: async () => {
+      const { AdminLoginPage } = await import("../features/auth/AdminLoginPage");
+      return { element: <AdminLoginPage /> };
+    },
+  },
 
   // Unified Role Dashboard
   {
@@ -163,42 +171,42 @@ export const router = createBrowserRouter([
         path: "users",
         lazy: async () => {
           const { AdminUsersPage } = await import("../features/dashboard/pages/AdminUsersPage");
-          return { element: <AdminUsersPage /> };
+          return { element: <ProtectedRoute allowedRoles={['admin']}><AdminUsersPage /></ProtectedRoute> };
         },
       },
       {
         path: "settings",
         lazy: async () => {
           const { AdminSettingsPage } = await import("../features/dashboard/pages/AdminSettingsPage");
-          return { element: <AdminSettingsPage /> };
+          return { element: <ProtectedRoute allowedRoles={['admin']}><AdminSettingsPage /></ProtectedRoute> };
         },
       },
       {
         path: "platform-settings",
         lazy: async () => {
           const { PlatformSettingsPage } = await import("../features/dashboard/pages/PlatformSettingsPage");
-          return { element: <PlatformSettingsPage /> };
+          return { element: <ProtectedRoute allowedRoles={['admin']}><PlatformSettingsPage /></ProtectedRoute> };
         },
       },
       {
         path: "admin-wallet",
         lazy: async () => {
           const { AdminWalletPage } = await import("../features/dashboard/pages/AdminWalletPage");
-          return { element: <AdminWalletPage /> };
+          return { element: <ProtectedRoute allowedRoles={['admin']}><AdminWalletPage /></ProtectedRoute> };
         },
       },
       {
         path: "admin-gifts",
         lazy: async () => {
           const { AdminGiftPage } = await import("../features/dashboard/pages/AdminGiftPage");
-          return { element: <AdminGiftPage /> };
+          return { element: <ProtectedRoute allowedRoles={['admin']}><AdminGiftPage /></ProtectedRoute> };
         },
       },
       {
         path: "reports",
         lazy: async () => {
           const { default: AdminReportsPage } = await import("../features/dashboard/pages/AdminReportsPage");
-          return { element: <AdminReportsPage /> };
+          return { element: <ProtectedRoute allowedRoles={['admin']}><AdminReportsPage /></ProtectedRoute> };
         },
       },
 

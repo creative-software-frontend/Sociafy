@@ -63,6 +63,7 @@ app.use("/api/provider", require("./routes/providerRoutes"));
 app.use("/api/partner", require("./routes/partnerRequestRoutes"));
 app.use("/api/provider", require("./routes/partnerRequestRoutes"));
 
+app.use("/api/admin/auth", require("./routes/adminAuthRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/admin/wallet", require("./routes/adminWalletRoutes"));
 app.use("/api/admin-wallet", require("./routes/admin.wallet.routes"));

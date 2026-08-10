@@ -5,7 +5,7 @@ const roleMiddleware = (roles) => {
         const userId = req.user.id;
 
         db.query(
-            "SELECT role FROM users WHERE id = ?",
+            "SELECT role, is_active FROM users WHERE id = ?",
             [userId],
             (err, result) => {
                 if (err) {
@@ -16,9 +16,14 @@ const roleMiddleware = (roles) => {
                     return res.status(404).json({ message: "User not found" });
                 }
 
-                const userRole = result[0].role;
+                const user = result[0];
 
-                if (!roles.includes(userRole)) {
+                // Inactive accounts are never authorized on role-protected routes.
+                if (Number(user.is_active) !== 1) {
+                    return res.status(403).json({ message: "Your account is blocked by the administrator." });
+                }
+
+                if (!roles.includes(user.role)) {
                     return res.status(403).json({
                         message: "Access denied"
                     });

@@ -97,6 +97,11 @@ exports.login = (req, res) => {
             return res.status(400).json({ message: "Invalid credentials" });
         }
 
+        // Admins must use the dedicated admin portal (POST /api/admin/auth/login).
+        if (user.role === "admin") {
+            return res.status(403).json({ message: "Please use the admin login portal." });
+        }
+
         // ✅ Task 2: Generate referral link on login too
         const referral = generateReferralLink(user.id, user.role);
         const token = generateToken(user.id, user.role);

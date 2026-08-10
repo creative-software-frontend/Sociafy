@@ -345,6 +345,7 @@ module.exports = async (db) => {
                 is_active TINYINT(1) DEFAULT 1,
                 privacy_accepted TINYINT(1) DEFAULT 0,
                 privacy_accepted_at TIMESTAMP NULL,
+                token_version INT NOT NULL DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_email (email),
@@ -411,6 +412,18 @@ module.exports = async (db) => {
                 await db.query(`ALTER TABLE users ADD COLUMN ${col.name} ${col.type}`);
                 console.log(`Added ${col.name} to users`);
             }
+        }
+
+        // --- auth session column (admin token invalidation) ---
+        // token_version lets the admin auth middleware reject stale JWTs after
+        // a password change. Defaults to 0 for every existing account.
+        const [uc4] = await db.query(
+            "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'"
+        );
+        const colNames4 = uc4.map(c => c.COLUMN_NAME.toLowerCase());
+        if (!colNames4.includes('token_version')) {
+            await db.query(`ALTER TABLE users ADD COLUMN \`token_version\` INT NOT NULL DEFAULT 0`);
+            console.log('✅ Added token_version to users');
         }
 
         // FK: users.membership_package_id -> packages.id

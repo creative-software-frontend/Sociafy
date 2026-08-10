@@ -466,6 +466,17 @@ export function AuthPage() {
                     </p>
                 )}
 
+                {isLogin && (
+                    <p style={{
+                        textAlign: 'center', marginTop: '8px',
+                        fontSize: '0.72rem', fontFamily: "'Inter', sans-serif", color: '#ffffff',
+                    }}>
+                        <Link to="/admin/login" style={{ color: 'var(--gold-mid)', textDecoration: 'none', fontWeight: 500 }}>
+                            Administrator? Admin portal →
+                        </Link>
+                    </p>
+                )}
+
                 <p style={{
                     textAlign: 'center', marginTop: '20px',
                     fontSize: '0.55rem', letterSpacing: '0.18em', textTransform: 'uppercase',
