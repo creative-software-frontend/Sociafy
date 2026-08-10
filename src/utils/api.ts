@@ -122,7 +122,42 @@ export const adminAuthApi = {
         request<{ success: boolean; message: string }>('/admin/auth/logout', {
             method: 'POST',
         }),
+
+    // ── Admin account self-deletion (requires current password) ─────────
+    deleteAccount: (password: string) =>
+        request<AdminDeleteAccountResponse>('/admin/auth/account', {
+            method: 'DELETE',
+            body: JSON.stringify({ password }),
+        }),
+
+    // ── First-admin setup (gated by live admin count, not a flag) ──────
+    setupStatus: () =>
+        request<{ setup_available: boolean }>('/admin/auth/setup-status'),
+
+    setup: (payload: AdminSetupPayload) =>
+        request<AdminSetupResponse>('/admin/auth/setup', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        }),
 };
+
+export interface AdminSetupPayload {
+    name: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+}
+
+export interface AdminSetupResponse {
+    success: boolean;
+    message: string;
+    id?: number;
+}
+
+export interface AdminDeleteAccountResponse {
+    success: boolean;
+    message: string;
+}
 
 export type TransactionType =
     | 'deposit'

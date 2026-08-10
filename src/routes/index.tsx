@@ -43,6 +43,14 @@ export const router = createBrowserRouter([
       return { element: <AdminLoginPage /> };
     },
   },
+  {
+    path: "/admin/setup",
+    errorElement: <ErrorPage />,
+    lazy: async () => {
+      const { AdminSetupPage } = await import("../features/auth/AdminSetupPage");
+      return { element: <AdminSetupPage /> };
+    },
+  },
 
   // Unified Role Dashboard
   {

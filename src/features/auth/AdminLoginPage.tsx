@@ -197,6 +197,16 @@ export function AdminLoginPage() {
                 </p>
 
                 <p style={{
+                    textAlign: 'center', marginTop: '12px',
+                    fontSize: '0.8rem', fontFamily: "'Inter', sans-serif", color: '#ffffff',
+                }}>
+                    First-time setup?{' '}
+                    <Link to="/admin/setup" style={{ color: 'var(--gold-mid)', textDecoration: 'none', fontWeight: 500 }}>
+                        Create First Admin Account
+                    </Link>
+                </p>
+
+                <p style={{
                     textAlign: 'center', marginTop: '20px',
                     fontSize: '0.55rem', letterSpacing: '0.18em', textTransform: 'uppercase',
                     color: '#ffffff', fontFamily: "'Inter', sans-serif",

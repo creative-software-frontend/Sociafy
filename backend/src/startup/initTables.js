@@ -426,6 +426,24 @@ module.exports = async (db) => {
             console.log('✅ Added token_version to users');
         }
 
+        // ─── platform_settings (single-row settings + setup lock anchor) ──
+        // Keeps call-rate settings and doubles as the row lock anchor that
+        // serializes first-admin setup transactions. Setup availability is
+        // decided purely by the live count of role='admin' users — there is no
+        // setup flag.
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS platform_settings (
+                id                   INT PRIMARY KEY,
+                call_rate_per_minute DECIMAL(10,2) NOT NULL DEFAULT 2.00,
+                created_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        const [psRows] = await db.query(`SELECT COUNT(*) AS total FROM platform_settings`);
+        if (!psRows.length || Number(psRows[0].total) === 0) {
+            await db.query(`INSERT INTO platform_settings (id, call_rate_per_minute) VALUES (1, 2.00)`);
+        }
+
         // FK: users.membership_package_id -> packages.id
         await addFKIfNotExists('users', 'fk_users_pkg', 'membership_package_id', 'packages', 'id', 'SET NULL');
         console.log('users table verified');

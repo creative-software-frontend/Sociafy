@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
 import { TopNav } from "./TopNav";
+import { AdminAccountDeletionSection } from "./AdminAccountDeletionSection";
 import { useAuth } from "../../../context/AuthContext";
 import { useMembership } from "../../../context/MembershipContext";
 import {
@@ -1263,6 +1264,8 @@ const uploadRes = await userApi.uploadImage(file, 'avatars');
                             >
                                 Change Password
                             </button>
+
+                            {role === "admin" && <AdminAccountDeletionSection />}
 
                             <button
                                 onClick={handleLogout}

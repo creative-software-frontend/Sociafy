@@ -36,6 +36,12 @@ const authRegisterLimiter = makeLimiter({ windowMs: 60 * 60 * 1000, limit: 5 });
 const adminAuthLoginLimiter = makeLimiter({ windowMs: 15 * 60 * 1000, limit: 10 });
 const adminPasswordChangeLimiter = makeLimiter({ windowMs: 15 * 60 * 1000, limit: 5 });
 
+/* ── Admin account self-deletion (authenticated, security-sensitive) ── */
+const adminAccountDeleteLimiter = makeLimiter({ windowMs: 15 * 60 * 1000, limit: 5 });
+
+/* ── First-admin setup (public, IP-based) — tight limit for an atomic one-time op ── */
+const adminSetupLimiter = makeLimiter({ windowMs: 60 * 60 * 1000, limit: 5 });
+
 /* ── Security-sensitive (authenticated user) ── */
 const passwordChangeLimiter = makeLimiter({ windowMs: 15 * 60 * 1000, limit: 5 });
 
@@ -70,6 +76,8 @@ module.exports = {
     authRegisterLimiter,
     adminAuthLoginLimiter,
     adminPasswordChangeLimiter,
+    adminAccountDeleteLimiter,
+    adminSetupLimiter,
     passwordChangeLimiter,
     financialLimiter,
     withdrawLimiter,
