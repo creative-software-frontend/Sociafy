@@ -426,6 +426,25 @@ module.exports = async (db) => {
             console.log('✅ Added token_version to users');
         }
 
+        // --- presence columns (last_seen / is_online) ---
+        // authMiddleware writes both on every authenticated request and
+        // providerRoutes reads them for the provider dashboard presence
+        // indicator. Databases created before the presence feature landed are
+        // missing them — ensure they exist idempotently on every startup so
+        // older deployments auto-upgrade without needing a manual migration.
+        const [uc5] = await db.query(
+            "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'"
+        );
+        const colNames5 = uc5.map(c => c.COLUMN_NAME.toLowerCase());
+        if (!colNames5.includes('last_seen')) {
+            await db.query(`ALTER TABLE users ADD COLUMN \`last_seen\` TIMESTAMP NULL`);
+            console.log('✅ Added last_seen to users');
+        }
+        if (!colNames5.includes('is_online')) {
+            await db.query(`ALTER TABLE users ADD COLUMN \`is_online\` TINYINT(1) DEFAULT 0`);
+            console.log('✅ Added is_online to users');
+        }
+
         // ─── platform_settings (single-row settings + setup lock anchor) ──
         // Keeps call-rate settings and doubles as the row lock anchor that
         // serializes first-admin setup transactions. Setup availability is
