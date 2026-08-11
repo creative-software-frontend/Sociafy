@@ -78,6 +78,7 @@ export function AdminWalletPage() {
     const toast = useToast();
     const [data, setData] = useState<WalletData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [apiError, setApiError] = useState<string | null>(null);
     const [showWithdraw, setShowWithdraw] = useState(false);
     const [amount, setAmount] = useState('');
     const [method, setMethod] = useState('bKash');
@@ -86,8 +87,15 @@ export function AdminWalletPage() {
 
     const load = async () => {
         setLoading(true);
+        setApiError(null);
         const res = await adminApi.getAdminWallet();
-        if (!res.error && res.data) setData(res.data);
+        if (!res.error && res.data) {
+            setData(res.data);
+        } else {
+            console.warn('[AdminWalletPage] getAdminWallet error:', res.error, 'status:', res.status);
+            setData(null);
+            setApiError(res.error ?? 'Failed to load admin wallet');
+        }
         setLoading(false);
     };
 
@@ -217,13 +225,22 @@ export function AdminWalletPage() {
                                 Transaction History
                             </h2>
 
-                            {data!.transactions.length === 0 ? (
+                            {apiError ? (
+                                <div style={{ textAlign: 'center', padding: 'var(--space-6) 0', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+                                    <div>
+                                        <p style={{ margin: 0 }}>Failed to load transactions: {apiError}</p>
+                                        <div style={{ marginTop: 12 }}>
+                                            <button onClick={load} className="btn btn-sm btn-outline">Retry</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (!data || data.transactions.length === 0) ? (
                                 <div style={{ textAlign: 'center', padding: 'var(--space-6) 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                                     No transactions yet
                                 </div>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    {data!.transactions.map(tx => {
+                                    {data.transactions.map(tx => {
                                         const info = typeInfo(tx.type);
                                         const isCredit = tx.amount > 0;
                                         return (

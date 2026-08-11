@@ -444,6 +444,45 @@ module.exports = async (db) => {
             await db.query(`INSERT INTO platform_settings (id, call_rate_per_minute) VALUES (1, 2.00)`);
         }
 
+        // ════════════════════════════════════════════════════════════
+        // Admin wallet: ensure tables + seed row exist when migrations weren't run
+        // This keeps deployments resilient when migrations are omitted but we
+        // still want a clear and explicit failure on DB problems.
+        // ════════════════════════════════════════════════════════════
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS admin_wallet (
+                id INT PRIMARY KEY,
+                balance DECIMAL(12,2) NOT NULL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        // Seed a single admin_wallet row (id = 1) when missing.
+        try {
+            const [awRows] = await db.query(`SELECT COUNT(*) AS total FROM admin_wallet`);
+            if (!awRows.length || Number(awRows[0].total) === 0) {
+                await db.query(`INSERT INTO admin_wallet (id, balance) VALUES (1, 0)`);
+                console.log('✅ Seeded admin_wallet row');
+            }
+        } catch (e) {
+            console.warn('⚠️  admin_wallet check failed:', e?.message);
+            throw e; // Surface DB errors loudly
+        }
+
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS admin_wallet_transactions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                type VARCHAR(50) NOT NULL,
+                amount DECIMAL(12,2) NOT NULL,
+                description VARCHAR(255) NULL,
+                reference_id INT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_admin_wallet_tx_type (type),
+                INDEX idx_admin_wallet_tx_created (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
         // FK: users.membership_package_id -> packages.id
         await addFKIfNotExists('users', 'fk_users_pkg', 'membership_package_id', 'packages', 'id', 'SET NULL');
         console.log('users table verified');
