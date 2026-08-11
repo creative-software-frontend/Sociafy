@@ -20,7 +20,7 @@ function generateReferralLink(userId, role) {
 
     return {
         code: referralCode,
-        url: `https://service.bluedise.com/login.php?ref=${referralCode}`
+        url: `https://sociafy-eta.vercel.app/login.php?ref=${referralCode}`
     };
 }
 

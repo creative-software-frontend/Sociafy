@@ -16,7 +16,7 @@ export function Navbar() {
         }}>
             <div className="navbar-inner">
                 {/* Brand */}
-                <span className="navbar-brand">BLUEDISE</span>
+                <span className="navbar-brand">SOCIAFY</span>
 
                 {/* Desktop Nav Links */}
                 <div className="navbar-links">

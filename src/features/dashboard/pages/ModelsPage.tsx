@@ -32,7 +32,7 @@ export function ModelsPage() {
                     fontFamily: "'Cormorant Garamond', serif",
                     fontSize: '1.1rem', letterSpacing: '0.2em', color: 'var(--blue-vivid)', fontWeight: 400,
                 }}>
-                    BLUEDISE
+                    SOCIAFY
                 </span>
                 <span style={{
                     fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase',

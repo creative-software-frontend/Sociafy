@@ -59,7 +59,7 @@ const SpinnerIcon = () => (
 );
 
 /* ============================================================
-   SHARED STYLES — gold/blue BLUEDISE design system
+   SHARED STYLES — gold/blue SOCIAFY design system
    ============================================================ */
 
 const labelStyle: React.CSSProperties = {

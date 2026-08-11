@@ -1,6 +1,6 @@
-# bluedise — Production Deployment Guide
+# Sociafy — Production Deployment Guide
 
-This document describes how to deploy the bluedis stack (React + Vite frontend,
+This document describes how to deploy the Sociafy stack (React + Vite frontend,
 Node.js + Express + Socket.IO backend, MySQL database). It contains **no real
 secrets** — all values are placeholders.
 

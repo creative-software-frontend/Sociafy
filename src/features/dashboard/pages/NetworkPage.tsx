@@ -28,7 +28,7 @@ export function NetworkPage() {
         const suffix = Math.random().toString(36).substring(2, 8).toUpperCase();
         const referralCode = `${prefix}${user.id}${suffix}`;
 
-        setReferralUrl(`https://service.bluedise.com/login.php?ref=${referralCode}`);
+        setReferralUrl(`https://sociafy-eta.vercel.app/login.php?ref=${referralCode}`);
     }, [user?.id, user?.role]);
 
     const handleCopyLink = async () => {

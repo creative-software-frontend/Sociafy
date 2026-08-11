@@ -102,7 +102,7 @@ export function AdminLoginPage() {
                         fontFamily: "'Cormorant Garamond', Georgia, serif",
                         fontSize: '2rem', letterSpacing: '0.2em',
                         color: 'var(--gold-mid)', fontWeight: 400, marginBottom: '6px',
-                    }}>BLUEDISE</h1>
+                    }}>SOCIAFY</h1>
                     <span style={{
                         display: 'block', fontSize: '0.6rem', letterSpacing: '0.3em',
                         textTransform: 'uppercase', color: 'var(--text-muted)',
@@ -125,7 +125,7 @@ export function AdminLoginPage() {
                         <input
                             id="admin-auth-email"
                             type="email"
-                            placeholder="admin@bluedise.com"
+                            placeholder="admin@sociafy.com"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             style={inputStyle}
@@ -210,7 +210,7 @@ export function AdminLoginPage() {
                     textAlign: 'center', marginTop: '20px',
                     fontSize: '0.55rem', letterSpacing: '0.18em', textTransform: 'uppercase',
                     color: '#ffffff', fontFamily: "'Inter', sans-serif",
-                }}>© 2026 BLUEDISE SECURED PORTAL</p>
+                }}>© 2026 SOCIAFY SECURED PORTAL</p>
             </div>
         </div>
     );

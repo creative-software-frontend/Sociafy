@@ -19,7 +19,7 @@ export function TopNav() {
                 <div className="navbar-inner" style={{ justifyContent: 'center' }}>
                     {/* Brand */}
                     <Link to="/" className="navbar-brand" style={{ textDecoration: 'none' }}>
-                        BLUEDISE
+                        SOCIAFY
                     </Link>
                 </div>
             </nav>

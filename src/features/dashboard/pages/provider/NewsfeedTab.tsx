@@ -208,7 +208,7 @@ const EXTERNAL_CHANNELS = [
 ];
 
 function ShareModal({ post, shareUrl, copied, onCopy, onClose }: ShareModalProps) {
-    const shareText = `Check out this post by ${post.author_name} on Bluedise!`;
+    const shareText = `Check out this post by ${post.author_name} on Sociafy!`;
 
     return (
         <>

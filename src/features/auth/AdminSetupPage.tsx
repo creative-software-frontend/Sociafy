@@ -136,7 +136,7 @@ export function AdminSetupPage() {
                         fontFamily: "'Cormorant Garamond', Georgia, serif",
                         fontSize: '2rem', letterSpacing: '0.2em',
                         color: 'var(--gold-mid)', fontWeight: 400, marginBottom: '6px',
-                    }}>BLUEDISE</h1>
+                    }}>SOCIAFY</h1>
                     <span style={{
                         display: 'block', fontSize: '0.6rem', letterSpacing: '0.3em',
                         textTransform: 'uppercase', color: 'var(--text-muted)',
@@ -220,7 +220,7 @@ export function AdminSetupPage() {
                             <input
                                 id="admin-setup-email"
                                 type="email"
-                                placeholder="admin@bluedise.com"
+                                placeholder="admin@sociafy.com"
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
                                 style={inputStyle}

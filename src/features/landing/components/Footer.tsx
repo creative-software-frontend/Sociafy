@@ -34,7 +34,7 @@ export function Footer() {
                         fontWeight: 300,
                         marginBottom: '8px',
                     }}>
-                        BLUEDISE
+                        SOCIAFY
                     </span>
                     <span style={{
                         display: 'block',
@@ -86,7 +86,7 @@ export function Footer() {
                     fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase',
                     color: 'var(--blue-dim)', fontFamily: "var(--font-sans)",
                 }}>
-                    © {year} BLUEDISE Network · All Rights Reserved
+                    © {year} Sociafy Network · All Rights Reserved
                 </p>
             </div>
         </footer>

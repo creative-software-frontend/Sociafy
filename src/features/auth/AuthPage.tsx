@@ -195,7 +195,7 @@ export function AuthPage() {
                         fontFamily: "'Cormorant Garamond', Georgia, serif",
                         fontSize: '2rem', letterSpacing: '0.2em',
                         color: 'var(--gold-mid)', fontWeight: 400, marginBottom: '6px',
-                    }}>BLUEDISE</h1>
+                    }}>SOCIAFY</h1>
                     <span style={{
                         display: 'block', fontSize: '0.6rem', letterSpacing: '0.3em',
                         textTransform: 'uppercase', color: 'var(--text-muted)',
@@ -439,7 +439,7 @@ export function AuthPage() {
                     fontSize: '0.8rem', fontFamily: "'Inter', sans-serif", color: '#ffffff',
                 }}>
                     {isLogin ? (
-                        <>New to BLUEdise?{' '}
+                        <>New to Sociafy?{' '}
                             <Link to="/signup" style={{ color: 'var(--blue-vivid)', textDecoration: 'none', fontWeight: 500 }}>
                                 Create an account
                             </Link>
@@ -472,7 +472,7 @@ export function AuthPage() {
                     textAlign: 'center', marginTop: '20px',
                     fontSize: '0.55rem', letterSpacing: '0.18em', textTransform: 'uppercase',
                     color: '#ffffff', fontFamily: "'Inter', sans-serif",
-                }}>© 2026 BLUEDISE SECURED PORTAL</p>
+                }}>© 2026 SOCIAFY SECURED PORTAL</p>
             </div>
         </div>
     );

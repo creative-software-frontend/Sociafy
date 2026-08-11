@@ -16,7 +16,7 @@ const runner = new MigrationRunner();
     } else {
         console.log(`
 ╔═════════════════════════════════════════════════════╗
-║   BLUEdise Database Migration CLI                   ║
+║   Sociafy Database Migration CLI                    ║
 ╚═════════════════════════════════════════════════════╝
 
 Usage:
