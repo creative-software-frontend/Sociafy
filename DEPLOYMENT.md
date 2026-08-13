@@ -110,8 +110,9 @@ NODE_ENV=production node src/server.js
 ## 6. Building the frontend
 
 ```bash
-# Fed by .env.production or the deploy env:
-#   VITE_API_URL=https://backend-host
+# Local development:  VITE_API_URL is read from ./.env (http://localhost:5000)
+# Vercel production:  VITE_API_URL comes from the Vercel Environment Variables
+#                     panel and must stay https://sociafy-backend.onrender.com
 npm run build        # outputs to dist/
 ```
 
