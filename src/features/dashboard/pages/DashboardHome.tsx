@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { TopNav } from './TopNav';
-import { providerApi, userApi } from '../../../utils/api';
+import { providerApi, userApi, type PartnerRequestStatus } from '../../../utils/api';
 import { useAuth } from '../../../context/AuthContext';
 import { useMembership } from '../../../context/MembershipContext';
+import { useToast } from '../../../components/Toast';
+import { ProfileDetailsModal } from './partner/ProfileDetailsModal';
 import { WelcomeCard } from './home/components/WelcomeCard';
 import { StatsRow } from './home/components/StatsRow';
 import { QuickLinksGrid } from './home/components/QuickLinksGrid';
@@ -45,6 +47,7 @@ export function DashboardHome() {
     const { role } = useParams<{ role: string }>();
     const { user } = useAuth();
     const { membership } = useMembership();
+    const toast = useToast();
 
     const isProviderDashboard = role === 'provider';
     const isUserDashboard = role === 'user';
@@ -65,6 +68,64 @@ export function DashboardHome() {
     const [onlineLoading, setOnlineLoading] = useState(false);
     const [onlineError, setOnlineError] = useState<string | null>(null);
     const [onlineOpen, setOnlineOpen] = useState(false);
+    const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
+    const [featuredStatusById, setFeaturedStatusById] = useState<Map<number, PartnerRequestStatus | null>>(new Map());
+
+    // The currently selected featured profile passed to the shared View Profile modal.
+    const selectedProfile = useMemo(
+        () => (selectedProfileId != null ? profiles.find((p) => p.id === selectedProfileId) ?? null : null),
+        [selectedProfileId, profiles]
+    );
+
+    const handleSelectProfile = (id: number) => {
+        // Reset status so the modal never shows stale data from a previous profile.
+        setFeaturedStatusById(new Map());
+        setSelectedProfileId(id);
+    };
+
+    // Load the partner-request status for the selected featured profile so the
+    // shared View Profile modal shows the correct button state. Users check via
+    // the user status endpoint; providers read the requester profile's status.
+    useEffect(() => {
+        if (selectedProfileId == null) return;
+        let cancelled = false;
+        const load = async () => {
+            let status: PartnerRequestStatus | null = null;
+            if (isUserDashboard) {
+                const res = await userApi.getPartnerRequestStatus(selectedProfileId);
+                status = res.data?.status ?? null;
+            } else {
+                const res = await providerApi.getRequesterProfile(selectedProfileId);
+                status = res.data?.partner_status ?? null;
+            }
+            if (!cancelled) {
+                setFeaturedStatusById((prev) => {
+                    const next = new Map(prev);
+                    next.set(selectedProfileId, status);
+                    return next;
+                });
+            }
+        };
+        load();
+        return () => { cancelled = true; };
+    }, [selectedProfileId, isUserDashboard]);
+
+    const handleFeaturedRequest = async (id: number) => {
+        if (!isUserDashboard) {
+            toast.info('Partner requests are sent from the user side.');
+            return;
+        }
+        const res = await userApi.sendPartnerRequest(id);
+        if (res.error) {
+            toast.error(res.error);
+            return;
+        }
+        setFeaturedStatusById((prev) => {
+            const next = new Map(prev);
+            next.set(id, res.data?.status ?? 'pending');
+            return next;
+        });
+    };
 
     const onlineCount = useMemo(() => onlineList.length, [onlineList]);
     // Label: providers see "Active Users", users see "Active Providers"
@@ -231,6 +292,7 @@ export function DashboardHome() {
                     profiles={profiles}
                     loading={profilesLoading}
                     isUser={isUserDashboard}
+                    onSelect={handleSelectProfile}
                 />
 
 
@@ -460,6 +522,15 @@ export function DashboardHome() {
                     </div>
                 </div>
             )}
+
+            {/* Featured Profile Details Modal (shared View Profile component) */}
+            <ProfileDetailsModal
+                open={selectedProfileId !== null}
+                profile={selectedProfile}
+                statusById={featuredStatusById}
+                onRequest={handleFeaturedRequest}
+                onClose={() => setSelectedProfileId(null)}
+            />
         </div>
     );
 }

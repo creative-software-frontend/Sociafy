@@ -4,6 +4,7 @@ export function FeaturedProfiles({
     profiles,
     loading,
     isUser,
+    onSelect,
 }: {
     profiles: Array<{
         id: number;
@@ -17,6 +18,7 @@ export function FeaturedProfiles({
     }>;
     loading?: boolean;
     isUser?: boolean;
+    onSelect: (id: number) => void;
 }) {
     const toFullUploadUrl = (url: string | null): string | undefined => {
         return resolveMediaUrl(url) || undefined;
@@ -56,6 +58,16 @@ export function FeaturedProfiles({
                     return (
                     <div
                         key={p.id}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`View profile of ${p.name}`}
+                        onClick={() => onSelect(p.id)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                onSelect(p.id);
+                            }
+                        }}
                         style={{
                             flex: '0 0 clamp(120px, 38vw, 150px)',
                             borderRadius: '12px',
@@ -64,6 +76,30 @@ export function FeaturedProfiles({
                             position: 'relative',
                             cursor: 'pointer',
                             boxShadow: isUser ? '0 0 15px rgba(232,160,32,0.3)' : '0 0 15px rgba(59,130,246,0.3)',
+                            transition: 'transform 0.2s, box-shadow 0.2s',
+                            outline: 'none',
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-3px)';
+                            e.currentTarget.style.boxShadow = isUser
+                                ? '0 0 22px rgba(232,160,32,0.45)'
+                                : '0 0 22px rgba(59,130,246,0.45)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = isUser
+                                ? '0 0 15px rgba(232,160,32,0.3)'
+                                : '0 0 15px rgba(59,130,246,0.3)';
+                        }}
+                        onFocus={(e) => {
+                            e.currentTarget.style.boxShadow = isUser
+                                ? '0 0 22px rgba(232,160,32,0.45)'
+                                : '0 0 22px rgba(59,130,246,0.45)';
+                        }}
+                        onBlur={(e) => {
+                            e.currentTarget.style.boxShadow = isUser
+                                ? '0 0 15px rgba(232,160,32,0.3)'
+                                : '0 0 15px rgba(59,130,246,0.3)';
                         }}
                     >
                         {p.avatar_url ? (
