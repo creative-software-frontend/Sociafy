@@ -175,7 +175,9 @@ export function WalletPage() {
                 setAmountInput("");
                 setWithdrawMethod('bKash');
                 setWithdrawAccountNumber("");
-                setModalStatus({ type: 'success', message: 'Waiting for admin approval.' });
+                setModalStatus({ type: 'success', message: '' });
+                toast.success('Waiting for admin approval.');
+                setShowWithdrawModal(false);
                 await loadWallet();
             }
         } catch (err: any) {

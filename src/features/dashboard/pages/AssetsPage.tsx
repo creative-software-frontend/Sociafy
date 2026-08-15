@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { TopNav } from './TopNav';
 import { userApi, type Transaction } from '../../../utils/api';
+import { useToast } from '../../../components/Toast';
 
 export function AssetsPage() {
     const { user } = useAuth();
     const role = user?.role;
+    const toast = useToast();
 
     const [balance, setBalance] = useState(0);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -109,6 +111,7 @@ export function AssetsPage() {
             } else {
                 setAmountInput('');
                 setShowWithdrawModal(false);
+                toast.success('Waiting for admin approval.');
                 await fetchWallet();
             }
         } catch (err: any) {
