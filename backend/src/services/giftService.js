@@ -190,7 +190,9 @@ async function createGift(data) {
             data.price,
             data.provider_percentage ?? 70,
             data.admin_percentage ?? 30,
-            data.is_active !== undefined ? (data.is_active ? 1 : 0) : 1,
+            // New gifts are always created ACTIVE. `is_active` is never read from
+            // the create payload — activation state is changed only via toggleGift().
+            1,
         ]
     );
     return getGiftById(result.insertId);

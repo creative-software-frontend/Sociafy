@@ -82,7 +82,9 @@ async function adminCreateGift(req, res) {
             price,
             provider_percentage: providerPct,
             admin_percentage: adminPct,
-            is_active: req.body.is_active,
+            // is_active is intentionally NOT forwarded: createGift() always
+            // creates gifts as ACTIVE. Activation state is changed only through
+            // the dedicated toggle endpoint.
         });
         return res.json({ gift });
     } catch (err) {

@@ -19,6 +19,14 @@ const GiftIcon = () => (
     </svg>
 );
 
+const MiniSpinner = ({ color = '#0a0a0a' }: { color?: string }) => (
+    <span style={{
+        display: 'inline-block', width: 12, height: 12, borderRadius: '50%',
+        border: `2px solid ${color}33`, borderTopColor: color,
+        animation: 'spin 0.8s linear infinite', marginRight: 6, verticalAlign: 'middle',
+    }} />
+);
+
 interface FormState {
     name: string;
     icon: string;
@@ -26,7 +34,6 @@ interface FormState {
     price: string;
     provider_percentage: string;
     admin_percentage: string;
-    is_active: boolean;
 }
 
 const emptyForm: FormState = {
@@ -36,7 +43,6 @@ const emptyForm: FormState = {
     price: '',
     provider_percentage: '70',
     admin_percentage: '30',
-    is_active: true,
 };
 
 export function AdminGiftPage() {
@@ -46,6 +52,7 @@ export function AdminGiftPage() {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [togglingId, setTogglingId] = useState<number | null>(null);
     const [form, setForm] = useState<FormState>(emptyForm);
 
     const load = async () => {
@@ -72,7 +79,6 @@ export function AdminGiftPage() {
             price: String(g.price),
             provider_percentage: String(g.provider_percentage),
             admin_percentage: String(g.admin_percentage),
-            is_active: g.is_active === 1,
         });
         setShowForm(true);
     };
@@ -95,7 +101,6 @@ export function AdminGiftPage() {
             price,
             provider_percentage: providerPct,
             admin_percentage: adminPct,
-            is_active: form.is_active ? 1 : 0,
         };
 
         setSubmitting(true);
@@ -114,12 +119,19 @@ export function AdminGiftPage() {
     };
 
     const handleToggle = async (g: Gift) => {
-        const res = await adminGiftApi.toggleGift(g.id, !(g.is_active === 1));
-        if (!res.error) {
-            toast.success(g.is_active === 1 ? 'Gift disabled.' : 'Gift enabled.');
-            await load();
-        } else {
-            toast.error(res.error || 'Failed to toggle gift');
+        if (togglingId !== null) return; // prevent duplicate requests while a toggle is in flight
+        const activating = !(g.is_active === 1);
+        setTogglingId(g.id);
+        try {
+            const res = await adminGiftApi.toggleGift(g.id, activating);
+            if (!res.error) {
+                toast.success(activating ? 'Gift activated.' : 'Gift deactivated.');
+                await load();
+            } else {
+                toast.error(res.error || 'Failed to update gift status');
+            }
+        } finally {
+            setTogglingId(null);
         }
     };
 
@@ -210,10 +222,6 @@ export function AdminGiftPage() {
                                     <input style={inputStyle} type="number" min="0" max="100" value={form.admin_percentage} onChange={e => setForm(f => ({ ...f, admin_percentage: e.target.value }))} />
                                 </div>
                             </div>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer' }}>
-                                <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
-                                <span style={{ color: 'var(--text-primary)', fontSize: '0.85rem' }}>Active</span>
-                            </label>
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-4)' }}>
                                 <button className="btn btn-ghost btn-sm" onClick={() => setShowForm(false)}>Cancel</button>
                                 <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={submitting}>
@@ -245,7 +253,7 @@ export function AdminGiftPage() {
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
                                             <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.9rem' }}>{g.name}</span>
-                                            <span className={`badge ${g.is_active === 1 ? 'badge-gold' : ''}`} style={g.is_active !== 1 ? { background: 'rgba(239,68,68,0.1)', color: 'var(--red-status)', borderColor: 'rgba(239,68,68,0.3)' } : undefined}>
+                                            <span className="badge" style={g.is_active === 1 ? { background: 'rgba(16,185,129,0.12)', color: 'var(--green-status)', borderColor: 'rgba(16,185,129,0.35)' } : { background: 'rgba(148,163,184,0.12)', color: '#94a3b8', borderColor: 'rgba(148,163,184,0.3)' }}>
                                                 {g.is_active === 1 ? 'Active' : 'Inactive'}
                                             </span>
                                         </div>
@@ -255,9 +263,15 @@ export function AdminGiftPage() {
                                     </div>
                                     <div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }}>
                                         <button className="btn btn-ghost btn-sm" onClick={() => startEdit(g)} style={{ padding: '6px 12px' }}>Edit</button>
-                                        <button className="btn btn-ghost btn-sm" onClick={() => handleToggle(g)} style={{ padding: '6px 12px' }}>
-                                            {g.is_active === 1 ? 'Disable' : 'Enable'}
-                                        </button>
+                                        {g.is_active === 1 ? (
+                                            <button className="btn btn-ghost btn-sm" onClick={() => handleToggle(g)} disabled={togglingId !== null} style={{ padding: '6px 12px', color: '#f59e0b', borderColor: 'rgba(245,158,11,0.4)' }}>
+                                                {togglingId === g.id ? <MiniSpinner color="#f59e0b" /> : 'Deactivate'}
+                                            </button>
+                                        ) : (
+                                            <button className="btn btn-primary btn-sm" onClick={() => handleToggle(g)} disabled={togglingId !== null} style={{ padding: '6px 12px' }}>
+                                                {togglingId === g.id ? <MiniSpinner color="#0a0a0a" /> : 'Activate'}
+                                            </button>
+                                        )}
                                         <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(g)} style={{ padding: '6px 12px', color: 'var(--red-status)', borderColor: 'rgba(239,68,68,0.3)' }}>Delete</button>
                                     </div>
                                 </div>
