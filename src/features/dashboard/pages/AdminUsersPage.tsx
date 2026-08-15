@@ -288,7 +288,7 @@ export function AdminUsersPage() {
                         </motion.div>
 
                         {/* List */}
-                        <motion.div layout style={{ display: 'grid', gap: 'var(--space-3)' }}>
+                        <motion.div layout className="admin-users-list" style={{ display: 'grid', gap: 'var(--space-3)' }}>
                             <AnimatePresence>
                                 {filteredPeople.length === 0 ? (
                                     <motion.div
@@ -313,12 +313,14 @@ export function AdminUsersPage() {
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, scale: 0.95 }}
                                             transition={{ duration: 0.2 }}
-                                            className="card"
+                                            className="card admin-users-row"
                                             style={{
                                                 padding: 'var(--space-4)',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 gap: 'var(--space-4)',
+                                                width: '100%',
+                                                minWidth: 0,
                                             }}
                                         >
                                             {/* Avatar */}
@@ -342,7 +344,7 @@ export function AdminUsersPage() {
                                             </div>
 
                                             {/* Info */}
-                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div className="admin-users-info" style={{ flex: 1, minWidth: 0 }}>
                                                 <p style={{
                                                     fontWeight: 600,
                                                     fontSize: '1rem',
@@ -373,44 +375,46 @@ export function AdminUsersPage() {
                                                 </p>
                                             </div>
 
-                                            {/* Status Badge */}
-                                            <div className="badge" style={{
-                                                background: person.is_active
-                                                    ? 'rgba(16,185,129,0.1)'
-                                                    : 'rgba(239,68,68,0.1)',
-                                                color: person.is_active
-                                                    ? 'var(--green-status)'
-                                                    : 'var(--red-status)',
-                                                borderColor: person.is_active
-                                                    ? 'rgba(16,185,129,0.3)'
-                                                    : 'rgba(239,68,68,0.3)',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '6px'
-                                            }}>
-                                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
-                                                {person.is_active ? 'Active' : 'Blocked'}
-                                            </div>
+                                            <div className="admin-users-actions">
+                                                {/* Status Badge */}
+                                                <div className="badge" style={{
+                                                    background: person.is_active
+                                                        ? 'rgba(16,185,129,0.1)'
+                                                        : 'rgba(239,68,68,0.1)',
+                                                    color: person.is_active
+                                                        ? 'var(--green-status)'
+                                                        : 'var(--red-status)',
+                                                    borderColor: person.is_active
+                                                        ? 'rgba(16,185,129,0.3)'
+                                                        : 'rgba(239,68,68,0.3)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px'
+                                                }}>
+                                                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+                                                    {person.is_active ? 'Active' : 'Blocked'}
+                                                </div>
 
-                                            {/* Block / Unblock Action Button */}
-                                            <button
-                                                className="btn btn-sm"
-                                                onClick={() => handleToggleActive(person.id, person.is_active)}
-                                                style={{
-                                                    flexShrink: 0,
-                                                    background: person.is_active ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
-                                                    color: person.is_active ? 'var(--red-status)' : 'var(--green-status)',
-                                                    border: `1px solid ${person.is_active ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`,
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.background = person.is_active ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.background = person.is_active ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)';
-                                                }}
-                                            >
-                                                {person.is_active ? 'Block' : 'Unblock'}
-                                            </button>
+                                                {/* Block / Unblock Action Button */}
+                                                <button
+                                                    className="btn btn-sm"
+                                                    onClick={() => handleToggleActive(person.id, person.is_active)}
+                                                    style={{
+                                                        flexShrink: 0,
+                                                        background: person.is_active ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
+                                                        color: person.is_active ? 'var(--red-status)' : 'var(--green-status)',
+                                                        border: `1px solid ${person.is_active ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`,
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = person.is_active ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = person.is_active ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)';
+                                                    }}
+                                                >
+                                                    {person.is_active ? 'Block' : 'Unblock'}
+                                                </button>
+                                            </div>
                                         </motion.div>
                                     ))
                                 )}
@@ -422,6 +426,48 @@ export function AdminUsersPage() {
             
             <style>{`
               @keyframes spin { to { transform: rotate(360deg); } }
+
+                            .admin-users-list {
+                                min-width: 0;
+                            }
+
+                            .admin-users-row {
+                                min-width: 0;
+                            }
+
+                            .admin-users-actions {
+                                margin-left: auto;
+                                display: inline-flex;
+                                align-items: center;
+                                gap: var(--space-3);
+                                flex-shrink: 0;
+                            }
+
+                            @media (max-width: 1080px) {
+                                .admin-users-row {
+                                    flex-wrap: wrap;
+                                    align-items: flex-start;
+                                    row-gap: var(--space-3);
+                                }
+
+                                .admin-users-info {
+                                    min-width: min(280px, 100%);
+                                }
+
+                                .admin-users-actions {
+                                    width: 100%;
+                                    margin-left: 0;
+                                    padding-left: calc(48px + var(--space-4));
+                                    justify-content: flex-start;
+                                    flex-wrap: wrap;
+                                }
+                            }
+
+                            @media (max-width: 720px) {
+                                .admin-users-actions {
+                                    padding-left: 0;
+                                }
+                            }
             `}</style>
         </div>
     );
