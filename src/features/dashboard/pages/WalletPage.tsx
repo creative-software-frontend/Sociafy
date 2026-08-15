@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { TopNav } from "./TopNav";
 import { userApi } from "../../../utils/api";
+import { useToast } from "../../../components/Toast";
 
 type Transaction = {
     id: number;
@@ -16,6 +17,7 @@ const allowedScreenshotExt = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 const allowedScreenshotMime = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export function WalletPage() {
+    const toast = useToast();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -106,7 +108,9 @@ export function WalletPage() {
                 setDepositTrxId("");
                 setDepositScreenshotUrl('');
                 setUploadProgress('');
-                setModalStatus({ type: 'success', message: 'Waiting for admin approval.' });
+                setModalStatus({ type: 'success', message: '' });
+                toast.success('Waiting for admin approval.');
+                setShowDepositModal(false);
                 await loadWallet();
             }
         } catch (err: any) {
