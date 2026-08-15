@@ -286,42 +286,6 @@ export function WalletPage() {
                                         ৳ {Number(wallet.balance).toFixed(2)}
                                     </p>
                                 </div>
-
-                                {wallet.role === "provider" && (
-                                    <div
-                                        style={{
-                                            background: "linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))",
-                                            border: "1px solid var(--border-gold)",
-                                            borderRadius: "16px",
-                                            padding: "24px",
-                                            textAlign: "center",
-                                            boxShadow: "var(--shadow-gold)",
-                                        }}
-                                    >
-                                        <p
-                                            style={{
-                                                fontSize: "0.65rem",
-                                                letterSpacing: "0.2em",
-                                                textTransform: "uppercase",
-                                                color: "var(--gold-mid)",
-                                                fontWeight: 700,
-                                                marginBottom: "8px",
-                                            }}
-                                        >
-                                            ★ Wallet Balance
-                                        </p>
-                                        <p
-                                            style={{
-                                                fontSize: "2rem",
-                                                fontWeight: 800,
-                                                color: "var(--gold-mid)",
-                                                fontFamily: "'Inter', sans-serif",
-                                            }}
-                                        >
-                                            ৳ {Number(wallet.balance).toFixed(2)}
-                                        </p>
-                                    </div>
-                                )}
                             </div>
                         </div>
 
