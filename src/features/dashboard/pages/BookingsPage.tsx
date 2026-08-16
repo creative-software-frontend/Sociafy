@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TopNav } from './TopNav';
 import { userApi } from '../../../utils/api';
+import { PointsDisplay } from '../../../components/PointsDisplay';
 
 interface JoinedEvent {
     id: number;
@@ -152,7 +153,7 @@ export function BookingsPage() {
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '12px', fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
-                                    {ev.entry_fee > 0 && <span>৳ {Number(ev.entry_fee).toFixed(2)} entry</span>}
+                                    {ev.entry_fee > 0 && <span><PointsDisplay amount={ev.entry_fee} decimals={2} /> entry</span>}
                                     <span>{ev.participant_count} joined</span>
                                     {ev.host_name && <span>Host: {ev.host_name}</span>}
                                 </div>

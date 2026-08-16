@@ -5,6 +5,7 @@ import { userApi, membershipApi } from '../../../utils/api';
 import type { Package } from '../../../utils/api';
 import { useMembership } from '../../../context/MembershipContext';
 import { useToast } from '../../../components/Toast';
+import { PointsDisplay } from '../../../components/PointsDisplay';
 
 
 
@@ -170,7 +171,7 @@ function TierCard({ pkg, onPurchased }: { pkg: Package; onPurchased?: () => void
                             fontFamily: "var(--font-sans)",
                             lineHeight: 1,
                         }}>
-                            {Number(pkg.price) === 0 ? 'Free' : `৳${Number(pkg.price).toLocaleString()}`}
+                            {Number(pkg.price) === 0 ? 'Free' : <PointsDisplay amount={pkg.price} decimals={0} />}
                         </span>
                         {/* Duration badge */}
                         <span className="badge badge-gold">
@@ -320,7 +321,7 @@ function TierCard({ pkg, onPurchased }: { pkg: Package; onPurchased?: () => void
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                 <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{pkg.name}</span>
                                 <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                    {Number(pkg.price) === 0 ? 'Free' : `৳${Number(pkg.price).toLocaleString()}`}
+                                    {Number(pkg.price) === 0 ? 'Free' : <PointsDisplay amount={pkg.price} decimals={0} />}
                                 </span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

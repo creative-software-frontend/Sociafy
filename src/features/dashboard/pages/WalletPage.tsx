@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { TopNav } from "./TopNav";
 import { userApi } from "../../../utils/api";
 import { useToast } from "../../../components/Toast";
+import { PointsDisplay, PointsIcon } from "../../../components/PointsDisplay";
 
 type Transaction = {
     id: number;
@@ -134,7 +135,7 @@ export function WalletPage() {
         if (amt > availableFunds) {
             setModalStatus({
                 type: 'error',
-                message: `Insufficient available balance. Available: ৳${Number(availableFunds).toFixed(2)}`
+                message: `Insufficient available balance. Available: ${Number(availableFunds).toFixed(2)}`
             });
             return;
         }
@@ -205,7 +206,7 @@ export function WalletPage() {
                     maxWidth: "2400px",
                     margin: "0 auto",
                     width: "100%",
-                    padding: "120px 16px 48px 16px",
+                    padding: "76px 16px 48px 16px",
                     boxSizing: "border-box",
                 }}
             >
@@ -289,7 +290,7 @@ export function WalletPage() {
                                             fontFamily: "'Inter', sans-serif",
                                         }}
                                     >
-                                        ৳ {Number(wallet.balance).toFixed(2)}
+                                        <PointsDisplay amount={wallet.balance} decimals={2} />
                                     </p>
                                 </div>
                             </div>
@@ -551,7 +552,7 @@ export function WalletPage() {
                                                     textDecoration: isRejected ? "line-through" : "none",
                                                 }}
                                             >
-                                                {isPositive ? "+" : "-"}৳{Number(tx.amount).toFixed(2)}
+                                                {isPositive ? "+" : "-"}<PointsDisplay amount={tx.amount} decimals={2} />
                                             </div>
                                         </div>
                                     );
@@ -657,7 +658,7 @@ export function WalletPage() {
 
                         <div style={{ position: "relative" }}>
                             <span style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", fontWeight: 700, color: "var(--text-muted)" }}>
-                                ৳
+                                <PointsIcon size={22} />
                             </span>
                             <input
                                 type="number"
@@ -859,9 +860,9 @@ export function WalletPage() {
                                 Enter the amount to withdraw.<br />
                                 <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>
                                     Available balance:{" "}
-                                    ৳{Number(wallet.available_balance).toFixed(2)}
+                                    <PointsDisplay amount={wallet.available_balance} decimals={2} />
                                 </span>
-                                {wallet.balance !== wallet.available_balance && <><br /><span style={{ fontSize: "0.7rem", color: "var(--gold-mid)" }}>Total balance: ৳{Number(wallet.balance).toFixed(2)} (৳{(wallet.balance - wallet.available_balance).toFixed(2)} reserved)</span></>}
+                                {wallet.balance !== wallet.available_balance && <><br /><span style={{ fontSize: "0.7rem", color: "var(--gold-mid)" }}>Total balance: <PointsDisplay amount={wallet.balance} decimals={2} /> (<PointsDisplay amount={wallet.balance - wallet.available_balance} decimals={2} /> reserved)</span></>}
                             </p>
                         </div>
 
@@ -882,7 +883,7 @@ export function WalletPage() {
 
                         <div style={{ position: "relative" }}>
                             <span style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", fontWeight: 700, color: "var(--text-muted)" }}>
-                                ৳
+                                <PointsIcon size={22} />
                             </span>
                             <input
                                 type="number"

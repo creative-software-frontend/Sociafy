@@ -6,6 +6,7 @@ import { userApi, membershipApi } from '../../../utils/api';
 import type { Package, PackageFeature } from '../../../utils/api';
 import { useMembership } from '../../../context/MembershipContext';
 import { useToast } from '../../../components/Toast';
+import { PointsDisplay } from '../../../components/PointsDisplay';
 
 
 // ── Animation variants ────────────────────────────────────────────────────────
@@ -135,7 +136,7 @@ function TierCard({ pkg, onPurchased }: { pkg: Package; onPurchased?: () => void
                             fontFamily: "var(--font-sans)",
                             lineHeight: 1,
                         }}>
-                            {Number(pkg.price) === 0 ? 'Free' : `৳${Number(pkg.price).toLocaleString()}`}
+                            {Number(pkg.price) === 0 ? 'Free' : <PointsDisplay amount={pkg.price} decimals={0} />}
                         </span>
                         {/* Duration badge */}
                         <span className="badge badge-gold">
@@ -285,13 +286,13 @@ function TierCard({ pkg, onPurchased }: { pkg: Package; onPurchased?: () => void
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>Monthly</span>
                                 <span style={{ fontSize: '1.1rem', color: 'var(--green-status)', fontWeight: 800 }}>
-                                    ৳{Math.round(Number(pkg.price) / pkg.duration_months).toLocaleString()}
+                                    <PointsDisplay amount={Math.round(Number(pkg.price) / pkg.duration_months)} decimals={0} />
                                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 400 }}> / mo</span>
                                 </span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>Total</span>
-                                <span style={{ fontSize: '0.95rem', color: 'var(--gold-mid)', fontWeight: 700 }}>৳{Number(pkg.price).toLocaleString()}</span>
+                                <span style={{ fontSize: '0.95rem', color: 'var(--gold-mid)', fontWeight: 700 }}><PointsDisplay amount={pkg.price} decimals={0} /></span>
                             </div>
                         </div>
 

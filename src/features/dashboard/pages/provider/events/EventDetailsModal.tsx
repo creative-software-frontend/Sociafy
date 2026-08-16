@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { eventApi } from '../../../../../utils/api';
 import { formatEventDate, getStatusLabel, getStatusStyle, getCapacityText } from './utils/eventHelpers';
 import type { Event, EventParticipant } from './types/event';
+import { PointsDisplay } from '../../../../../components/PointsDisplay';
 
 /* ---- Inline SVG icons (no icon library in the project) ---- */
 const dIconProps = {
@@ -164,7 +165,7 @@ export function EventDetailsModal({ isOpen, event, onClose, role }: EventDetails
                             <div>
                                 <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ENTRY FEE</p>
                                 <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 500 }}>
-                                    {event.entry_fee === 0 ? 'Free' : `৳ ${event.entry_fee ?? 0}`}
+                                    {event.entry_fee === 0 ? 'Free' : <PointsDisplay amount={event.entry_fee ?? 0} />}
                                 </p>
                             </div>
                         </div>

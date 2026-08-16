@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useToast } from '../../../../../components/Toast';
 import { formatEventDate } from './utils/eventHelpers';
 import type { Event } from './types/event';
+import { PointsDisplay } from '../../../../../components/PointsDisplay';
 
 interface JoinEventModalProps {
     isOpen: boolean;
@@ -227,7 +228,7 @@ export function JoinEventModal({
                                     textAlign: 'right',
                                 }}
                             >
-                                ৳{entryFee}
+                                <PointsDisplay amount={entryFee} />
                             </span>
                         </div>
                     ) : null}

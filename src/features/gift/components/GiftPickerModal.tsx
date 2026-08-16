@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { giftApi } from '../services/giftApi';
 import type { Gift } from '../types/gift';
+import { PointsDisplay } from '../../../components/PointsDisplay';
 
 interface Props {
     onClose: () => void;
@@ -64,7 +65,7 @@ export function GiftPickerModal({ onClose, onSend }: Props) {
                             Send {confirmGift.name}?
                         </h3>
                         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.95rem', margin: '0 0 22px' }}>
-                            Send {confirmGift.name} for ৳{Number(confirmGift.price).toFixed(2)}?
+                            Send {confirmGift.name} for <PointsDisplay amount={confirmGift.price} decimals={2} />?
                         </p>
                         <div style={{ display: 'flex', gap: 10 }}>
                             <button onClick={() => setConfirmGift(null)} disabled={sending}
@@ -135,7 +136,7 @@ export function GiftPickerModal({ onClose, onSend }: Props) {
                                     <span style={{ fontSize: '2rem', lineHeight: 1 }}>{g.icon || '🎁'}</span>
                                 )}
                                 <span style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 600 }}>{g.name}</span>
-                                <span style={{ color: 'rgba(139,92,246,0.9)', fontSize: '0.72rem', fontWeight: 700 }}>৳{Number(g.price).toFixed(2)}</span>
+                                <span style={{ color: 'rgba(139,92,246,0.9)', fontSize: '0.72rem', fontWeight: 700 }}><PointsDisplay amount={g.price} decimals={2} /></span>
                             </button>
                         ))
                     )}

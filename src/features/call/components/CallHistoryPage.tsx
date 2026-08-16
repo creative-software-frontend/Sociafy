@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { callApi } from '../services/callApi';
 import type { CallLog } from '../services/callApi';
+import { PointsDisplay } from '../../../components/PointsDisplay';
 
 interface Props { onClose: () => void }
 
@@ -210,7 +211,7 @@ export function CallHistoryPage({ onClose }: Props) {
                                             </p>
                                             {(call as any).cost != null && (
                                                 <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.65rem', margin: '0 0 2px', whiteSpace: 'nowrap' }}>
-                                                    ${Number((call as any).cost).toFixed(2)}
+                                                    <PointsDisplay amount={(call as any).cost} decimals={2} />
                                                 </p>
                                             )}
                                             <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.6rem', margin: 0, whiteSpace: 'nowrap' }}>

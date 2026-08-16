@@ -3,6 +3,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { TopNav } from './TopNav';
 import { userApi, type Transaction } from '../../../utils/api';
 import { useToast } from '../../../components/Toast';
+import { PointsDisplay, PointsIcon } from '../../../components/PointsDisplay';
 
 export function AssetsPage() {
     const { user } = useAuth();
@@ -131,7 +132,7 @@ export function AssetsPage() {
                 maxWidth: '2400px',
                 margin: '0 auto',
                 width: '100%',
-                padding: '120px 16px 48px 16px',
+                padding: '76px 16px 48px 16px',
                 boxSizing: 'border-box'
             }}>
 
@@ -190,7 +191,7 @@ export function AssetsPage() {
                                         gap: '12px',
                                         textShadow: '0 0 30px rgba(255, 255, 255, 0.15)'
                                     }}>
-                                        <span style={{ fontWeight: 400, color: 'var(--text-primary)' }}>৳</span> {Number(balance).toFixed(2)}
+                                        <PointsDisplay amount={balance} decimals={2} />
                                     </p>
                                 </div>
                         </div>
@@ -431,7 +432,7 @@ export function AssetsPage() {
                                                     : "var(--red-status)",
                                                 textDecoration: isRejected ? "line-through" : "none",
                                             }}>
-                                                {isPositive ? '+' : '-'}৳{Number(tx.amount).toFixed(2)}
+                                                {isPositive ? '+' : '-'}<PointsDisplay amount={tx.amount} decimals={2} />
                                             </div>
                                         </div>
                                     );
@@ -498,7 +499,7 @@ export function AssetsPage() {
                         )}
 
                         <div style={{ position: 'relative' }}>
-                            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>৳</span>
+                            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}><PointsIcon size={22} /></span>
                             <input
                                 type="number"
                                 step="any"
@@ -548,7 +549,7 @@ export function AssetsPage() {
                             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                 Enter the amount to withdraw.<br/>
                                 <br/>
-                                Available balance: ৳{Number(balance).toFixed(2)}
+                                Available balance: <PointsDisplay amount={balance} decimals={2} />
                             </p>
                         </div>
 
@@ -559,7 +560,7 @@ export function AssetsPage() {
                         )}
 
                         <div style={{ position: 'relative' }}>
-                            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>৳</span>
+                            <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}><PointsIcon size={22} /></span>
                             <input
                                 type="number"
                                 step="any"

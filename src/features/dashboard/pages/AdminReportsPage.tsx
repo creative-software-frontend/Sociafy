@@ -3,12 +3,10 @@ import { adminApi } from '../../../utils/api';
 import type { ReportsData } from '../../../utils/api';
 import { motion } from 'framer-motion';
 import { resolveMediaUrl } from '../../../config/apiConfig';
+import { PointsDisplay } from '../../../components/PointsDisplay';
 
 
 
-
-const fmt = (n: number) =>
-    '৳ ' + Number(n).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const typeLabel: Record<string, { label: string; color: string; bg: string }> = {
     deposit: { label: 'Deposit', color: 'var(--green-status)', bg: 'rgba(16,185,129,0.1)' },
@@ -314,17 +312,19 @@ export default function AdminReportsPage() {
             {/* Summary Stat Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-8)' }}>
                 {[
-                    { label: 'Total Deposits', value: fmt(s.totalDeposits), color: 'var(--green-status)', icon: icons.deposit },
-                    { label: 'Total Withdrawals', value: fmt(s.totalWithdrawals), color: 'var(--red-status)', icon: icons.withdraw },
-                    { label: 'Total Earnings', value: fmt(s.totalEarnings), color: 'var(--blue-vivid)', icon: icons.earning },
-                    { label: 'Net Holdings', value: fmt(s.netHoldings), color: 'var(--gold-mid)', icon: icons.wallet },
+                    { label: 'Total Deposits', amount: s.totalDeposits, color: 'var(--green-status)', icon: icons.deposit },
+                    { label: 'Total Withdrawals', amount: s.totalWithdrawals, color: 'var(--red-status)', icon: icons.withdraw },
+                    { label: 'Total Earnings', amount: s.totalEarnings, color: 'var(--blue-vivid)', icon: icons.earning },
+                    { label: 'Net Holdings', amount: s.netHoldings, color: 'var(--gold-mid)', icon: icons.wallet },
                     { label: 'Total Users', value: s.totalUsers.toString(), color: 'var(--text-primary)', icon: icons.user },
                     { label: 'Total Providers', value: s.totalProviders.toString(), color: 'var(--text-primary)', icon: icons.provider },
                 ].map(card => (
                     <motion.div variants={fadeUp} key={card.label} className="card" style={{ padding: 'var(--space-5) var(--space-4)' }}>
                         <div style={{ fontSize: '1.75rem', marginBottom: 'var(--space-2)', color: card.color }}>{card.icon}</div>
                         <div className="eyebrow" style={{ marginBottom: 'var(--space-1)' }}>{card.label}</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 600, color: card.color }}>{card.value}</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 600, color: card.color }}>
+                            {card.amount != null ? <PointsDisplay amount={card.amount} decimals={2} /> : card.value}
+                        </div>
                     </motion.div>
                 ))}
             </div>
@@ -345,7 +345,7 @@ export default function AdminReportsPage() {
                         <div key={`deposit-${req.id}`} style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', background: 'var(--bg-input)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
                                 <strong style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>Deposit • {req.user_name || 'User'}</strong>
-                                <span style={{ color: 'var(--green-status)', fontWeight: 600 }}>৳ {Number(req.amount).toFixed(2)}</span>
+                                <span style={{ color: 'var(--green-status)', fontWeight: 600 }}><PointsDisplay amount={req.amount} decimals={2} /></span>
                             </div>
                             <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: 'var(--space-1)' }}>{req.method} • {req.trx_id}</div>
                                     {req.screenshot_url ? (
@@ -382,7 +382,7 @@ export default function AdminReportsPage() {
                         <div key={`withdraw-${req.id}`} style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', background: 'var(--bg-input)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
                                 <strong style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>Withdraw • {req.user_name || 'User'}</strong>
-                                <span style={{ color: 'var(--gold-mid)', fontWeight: 600 }}>৳ {Number(req.amount).toFixed(2)}</span>
+                                <span style={{ color: 'var(--gold-mid)', fontWeight: 600 }}><PointsDisplay amount={req.amount} decimals={2} /></span>
                             </div>
                             <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: 'var(--space-1)' }}>{req.method} • {req.account_number}</div>
                             <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
@@ -413,7 +413,7 @@ export default function AdminReportsPage() {
                                         <div style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name}</div>
                                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{u.role}</div>
                                     </div>
-                                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--green-status)', flexShrink: 0 }}>{fmt(u.total_deposited ?? 0)}</div>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--green-status)', flexShrink: 0 }}><PointsDisplay amount={u.total_deposited ?? 0} decimals={2} /></div>
                                 </div>
                             ))}
                         </div>
@@ -437,7 +437,7 @@ export default function AdminReportsPage() {
                                         <div style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name}</div>
                                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{u.role}</div>
                                     </div>
-                                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--blue-vivid)', flexShrink: 0 }}>{fmt(u.total_earned ?? 0)}</div>
+                                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--blue-vivid)', flexShrink: 0 }}><PointsDisplay amount={u.total_earned ?? 0} decimals={2} /></div>
                                 </div>
                             ))}
                         </div>
@@ -509,7 +509,6 @@ export default function AdminReportsPage() {
                             const globalIdx = idx + 1;
 
                             const amountIsNegative = ((e.type as string) === 'withdraw' || (e.type as string) === 'event_payment');
-                            const amountSigned = `${amountIsNegative ? '-' : '+'}${fmt(Number(e.amount))}`;
                             const amountColor = amountIsNegative ? 'var(--red-status)' : 'var(--green-status)';
 
                             const statusBg =
@@ -639,7 +638,7 @@ export default function AdminReportsPage() {
                                             <div style={{ minWidth: 0 }}>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                                                     <div style={{ fontSize: '1.45rem', fontWeight: 900, color: amountColor, lineHeight: 1.1 }}>
-                                                        {amountSigned}
+                                                        {amountIsNegative ? '-' : '+'}<PointsDisplay amount={Number(e.amount)} decimals={2} />
                                                     </div>
 
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>

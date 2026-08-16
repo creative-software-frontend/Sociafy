@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { PointsDisplay } from "../../../components/PointsDisplay";
 
 const fadeUp = {
     hidden: { opacity: 0, y: 24 },
@@ -39,7 +40,7 @@ const tiers = [
     {
         id: 'premium',
         tag: 'Premium Elite',
-        name: '৳22,000',
+        name: '22000',
         features: [
             { label: 'Lifetime VIP Status', included: true },
             { label: 'Full Elite Profile Access', included: true },
@@ -53,7 +54,7 @@ const tiers = [
     {
         id: 'regular',
         tag: 'Regular Standard',
-        name: '৳12,000',
+        name: '12000',
         features: [
             { label: 'Lifetime Access', included: true },
             { label: 'Regular Profile Access', included: true },
@@ -175,8 +176,9 @@ export function MembershipTiers() {
                                     fontFamily: "'Cormorant Garamond', serif",
                                     fontSize: '2.8rem', fontWeight: 300, lineHeight: 1,
                                     color: tier.featured ? 'var(--gold-light)' : 'var(--text-primary)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                                 }}>
-                                    {tier.name}
+                                    {tier.name === 'Free' ? 'Free' : <PointsDisplay amount={tier.name} decimals={0} size={30} />}
                                 </p>
                                 {tier.featured && (
                                     <span style={{

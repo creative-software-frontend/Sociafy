@@ -10,6 +10,7 @@ import type { ChatMessage, ActiveUser } from '../../../utils/api';
 import { TopNav } from './TopNav';
 import { FeatureGate } from '../../../components/FeatureGate';
 import { useToast } from '../../../components/Toast';
+import { PointsDisplay } from '../../../components/PointsDisplay';
 import { CallButton } from '../../call/components/CallButton';
 import { useCallContext } from '../../call/context/callContextValue';
 import { callApi } from '../../call/services/callApi';
@@ -647,7 +648,7 @@ export function ChatPage() {
                                                                     {gift.giftName} Gift
                                                                 </p>
                                                                 <p style={{ color: isMe ? 'rgba(255,255,255,0.8)' : 'rgba(139,92,246,0.9)', fontSize: '0.75rem', fontWeight: 700, margin: 0 }}>
-                                                                    ৳{Number(gift.price).toFixed(2)}
+                                                                    <PointsDisplay amount={gift.price} decimals={2} />
                                                                 </p>
                                                             </div>
                                                         ) : (

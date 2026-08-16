@@ -1,6 +1,7 @@
 import { formatEventDate, getStatusLabel, getStatusStyle, getCapacityText, isEventFull } from './utils/eventHelpers';
 
 import type { Event } from './types/event';
+import { PointsDisplay } from '../../../../../components/PointsDisplay';
 
 interface EventCardProps {
     event: Event;
@@ -144,7 +145,7 @@ export function EventCard({
                 <div style={metaRowStyle}>
                     <span style={metaIconStyle}><FeeIcon /></span>
                     <span>
-                        {event.entry_fee === 0 ? 'Free' : `৳ ${event.entry_fee ?? 0}`}
+                        {event.entry_fee === 0 ? 'Free' : <PointsDisplay amount={event.entry_fee ?? 0} />}
                     </span>
                 </div>
 

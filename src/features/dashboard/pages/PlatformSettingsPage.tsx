@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { TopNav } from './TopNav';
 import { adminApi } from '../../../utils/api';
 import { useToast } from '../../../components/Toast';
+import { PointsIcon } from '../../../components/PointsDisplay';
 
 const fadeUp = {
     hidden: { opacity: 0, y: 12 },
@@ -110,7 +111,7 @@ export function PlatformSettingsPage() {
                         </p>
 
                         <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
-                            <span style={{ color: 'var(--text-secondary)', fontSize: '1rem', fontWeight: 600 }}>$</span>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '1rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}><PointsIcon /></span>
                             <input
                                 type="number"
                                 min="0.01"
@@ -134,7 +135,7 @@ export function PlatformSettingsPage() {
                         {/* Call Rate Per Second (read-only) */}
                         <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--space-1)' }}>Call Rate Per Second</label>
                         <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                            <span style={{ color: 'var(--text-secondary)', fontSize: '1rem', fontWeight: 600 }}>$</span>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '1rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}><PointsIcon /></span>
                             <div style={{
                                 flex: 1,
                                 background: 'var(--bg-input)',

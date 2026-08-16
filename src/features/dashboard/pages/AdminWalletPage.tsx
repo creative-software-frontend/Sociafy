@@ -4,6 +4,7 @@ import { TopNav } from './TopNav';
 import { adminApi } from '../../../utils/api';
 import type { AdminWalletTransaction } from '../../../utils/api';
 import { useToast } from '../../../components/Toast';
+import { PointsDisplay } from '../../../components/PointsDisplay';
 
 const fadeUp = {
     hidden: { opacity: 0, y: 12 },
@@ -46,10 +47,6 @@ const icons = {
         </svg>
     ),
 };
-
-function fmtMoney(n: number | undefined): string {
-    return `$${Number(n || 0).toFixed(2)}`;
-}
 
 function fmtDate(d: string): string {
     const t = new Date(d);
@@ -140,10 +137,10 @@ export function AdminWalletPage() {
     };
 
     const statCards = data ? [
-        { label: 'Wallet Balance', value: fmtMoney(data.balance), color: 'var(--gold-mid)', icon: icons.balance },
-        { label: 'Membership Income', value: fmtMoney(data.totalMembershipIncome), color: 'var(--green-status)', icon: icons.membership },
-        { label: 'Call Income', value: fmtMoney(data.totalCallIncome), color: 'var(--blue-vivid)', icon: icons.call },
-        { label: 'Total Withdrawals', value: fmtMoney(data.totalWithdrawals), color: 'var(--red-status)', icon: icons.withdrawn },
+        { label: 'Wallet Balance', amount: data.balance, color: 'var(--gold-mid)', icon: icons.balance },
+        { label: 'Membership Income', amount: data.totalMembershipIncome, color: 'var(--green-status)', icon: icons.membership },
+        { label: 'Call Income', amount: data.totalCallIncome, color: 'var(--blue-vivid)', icon: icons.call },
+        { label: 'Total Withdrawals', amount: data.totalWithdrawals, color: 'var(--red-status)', icon: icons.withdrawn },
     ] : [];
 
     return (
@@ -174,7 +171,7 @@ export function AdminWalletPage() {
                                 <motion.div variants={fadeUp} initial="hidden" animate="show" key={card.label} className="card" style={{ padding: 'var(--space-5) var(--space-4)' }}>
                                     <div style={{ fontSize: '1.5rem', marginBottom: 'var(--space-2)', color: card.color }}>{card.icon}</div>
                                     <div className="eyebrow" style={{ marginBottom: 'var(--space-1)' }}>{card.label}</div>
-                                    <div style={{ fontSize: '1.25rem', fontWeight: 600, color: card.color }}>{card.value}</div>
+                                    <div style={{ fontSize: '1.25rem', fontWeight: 600, color: card.color }}><PointsDisplay amount={card.amount} decimals={2} /></div>
                                 </motion.div>
                             ))}
                         </div>
@@ -263,7 +260,7 @@ export function AdminWalletPage() {
                                                     fontSize: '0.95rem', fontWeight: 700, whiteSpace: 'nowrap',
                                                     color: isCredit ? 'var(--green-status)' : 'var(--red-status)',
                                                 }}>
-                                                    {isCredit ? '+' : ''}{fmtMoney(tx.amount)}
+                                                    {isCredit ? '+' : ''}<PointsDisplay amount={tx.amount} decimals={2} />
                                                 </span>
                                             </div>
                                         );

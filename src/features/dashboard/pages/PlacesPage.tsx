@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { TopNav } from './TopNav';
 import { providerApi, userApi } from '../../../utils/api';
 import { useAuth } from '../../../context/AuthContext';
+import { PointsDisplay } from '../../../components/PointsDisplay';
 
 interface EventItem {
     id?: number;
@@ -195,7 +196,7 @@ export function PlacesPage() {
                                             color: 'var(--gold-mid)', fontSize: '0.6rem', fontWeight: 700,
                                             fontFamily: "'Inter', sans-serif", marginTop: '6px',
                                         }}>
-                                            ৳ {Number(ev.entry_fee).toFixed(2)} entry
+                                            <PointsDisplay amount={ev.entry_fee} decimals={2} /> entry
                                         </p>
                                     )}
                                 </div>

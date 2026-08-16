@@ -237,9 +237,9 @@ export function NetworkPage() {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(12px, 3.5vw, 16px)' }}>
                             {[
-                                { level: "1 Referral Purchase:",   text: "Regular Tier + ৳1,000 Bonus",          color: 'var(--green-status)', symbol: "★" },
-                                { level: "2 Referral Purchases:",  text: "Premium Tier + Extra ৳1,000 Bonus",    color: 'var(--gold-mid)',     symbol: "👑" },
-                                { level: "5 Referral Purchases:",  text: "Elite Tier + ৳5,000 Bonus",            color: 'var(--blue-vivid)',   symbol: "💎" },
+                                { level: "1 Referral Purchase:",   text: "Regular Tier + 1,000 Bonus",          color: 'var(--green-status)', symbol: "★" },
+                                { level: "2 Referral Purchases:",  text: "Premium Tier + Extra 1,000 Bonus",    color: 'var(--gold-mid)',     symbol: "👑" },
+                                { level: "5 Referral Purchases:",  text: "Elite Tier + 5,000 Bonus",            color: 'var(--blue-vivid)',   symbol: "💎" },
                                 { level: "Lifetime Benefits:",     text: "Unlocked networks are permanent.",      color: 'var(--blue-vivid)',   symbol: "∞"  },
                             ].map((reward, i) => (
                                 <div key={i} style={{

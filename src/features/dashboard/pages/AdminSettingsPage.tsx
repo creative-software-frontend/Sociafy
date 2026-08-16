@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { TopNav } from './TopNav';
 import { adminApi } from '../../../utils/api';
 import type { Package, Feature, CreatePackagePayload } from '../../../utils/api';
+import { PointsDisplay } from '../../../components/PointsDisplay';
 
 type FeatureWithFlags = Feature & {
     is_coming_soon?: number | boolean;
@@ -395,7 +396,7 @@ function PackagesSection() {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
                         <span style={{ fontSize: 'clamp(1.3rem, 3vw, 1.7rem)', fontWeight: 800, color: 'var(--gold-mid)', lineHeight: 1 }}>
-                            {Number(pkg.price) === 0 ? 'Free' : `৳${Number(pkg.price).toLocaleString()}`}
+                            {Number(pkg.price) === 0 ? 'Free' : <PointsDisplay amount={pkg.price} decimals={0} />}
                         </span>
                         <span className="badge badge-gold">
                             {pkg.duration_months} Month{pkg.duration_months > 1 ? 's' : ''}
@@ -575,7 +576,7 @@ function PackagesSection() {
                                 />
                             </div>
                             <div>
-                                <label style={labelStyle}>Price (৳) *</label>
+                                <label style={labelStyle}>Price *</label>
                                 <input
                                     style={inputStyle}
                                     type="number" min="0" step="0.01"

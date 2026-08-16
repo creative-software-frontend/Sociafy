@@ -4,6 +4,7 @@ import { TopNav } from './TopNav';
 import { adminGiftApi } from '../../gift/services/giftApi';
 import type { Gift } from '../../gift/types/gift';
 import { useToast } from '../../../components/Toast';
+import { PointsDisplay } from '../../../components/PointsDisplay';
 
 const fadeUp = {
     hidden: { opacity: 0, y: 12 },
@@ -204,7 +205,7 @@ export function AdminGiftPage() {
                                     <input style={inputStyle} value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="🌹" />
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>Price (৳)</label>
+                                    <label style={labelStyle}>Price</label>
                                     <input style={inputStyle} type="number" min="0.01" step="0.01" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} placeholder="10" />
                                 </div>
                             </div>
@@ -258,7 +259,7 @@ export function AdminGiftPage() {
                                             </span>
                                         </div>
                                         <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: 2 }}>
-                                            ৳{Number(g.price).toFixed(2)} · Provider {Number(g.provider_percentage).toFixed(0)}% / Admin {Number(g.admin_percentage).toFixed(0)}%
+                                            <PointsDisplay amount={g.price} decimals={2} /> · Provider {Number(g.provider_percentage).toFixed(0)}% / Admin {Number(g.admin_percentage).toFixed(0)}%
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }}>

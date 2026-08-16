@@ -1,6 +1,7 @@
 import { useCreateEvent } from './hooks/useCreateEvent';
 import { useToast } from '../../../../../components/Toast';
 import type { Event } from './types/event';
+import { PointsIcon } from '../../../../../components/PointsDisplay';
 
 interface EventFormProps {
     eventToEdit?: Event | null;
@@ -37,10 +38,6 @@ const MapPinIcon = () => (
 
 const UsersIcon = () => (
     <svg {...iconProps}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-);
-
-const MoneyIcon = () => (
-    <svg {...iconProps}><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
 );
 
 const TagIcon = () => (
@@ -311,7 +308,7 @@ export function EventForm({ eventToEdit, onSuccess, onCancel }: EventFormProps) 
                         />
                     </Field>
 
-                    <Field label="Price" icon={<MoneyIcon />} htmlFor="entry_fee" error={errors.entry_fee}>
+                    <Field label="Price" icon={<PointsIcon size={16} />} htmlFor="entry_fee" error={errors.entry_fee}>
                         <input
                             id="entry_fee"
                             type="number"
