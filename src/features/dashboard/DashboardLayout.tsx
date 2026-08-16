@@ -1,5 +1,7 @@
+import { useState, type ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
+import { AdminMoreMenu } from './MoreMenu';
 
 const ICONS = {
     home: (
@@ -95,12 +97,25 @@ const ICONS = {
             <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
         </svg>
     ),
+    more: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" />
+        </svg>
+    ),
 };
 
 
 // ... existing code ...
 
-const USER_NAV = [
+type NavItem = {
+    to?: string;
+    end?: boolean;
+    label: string;
+    icon: ReactNode;
+    more?: boolean;
+};
+
+const USER_NAV: NavItem[] = [
     { to: '', end: true, label: 'HOME', icon: ICONS.home },
     { to: '/services', end: false, label: 'SERVICES', icon: ICONS.services },
     { to: '/membership', end: false, label: 'MEMBERSHIP', icon: ICONS.membership },
@@ -110,19 +125,16 @@ const USER_NAV = [
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },
 ];
 
-const ADMIN_NAV = [
+const ADMIN_NAV: NavItem[] = [
     { to: '', end: true, label: 'HOME', icon: ICONS.home },
     { to: '/users', end: false, label: 'USERS', icon: ICONS.users },
     { to: '/reports', end: false, label: 'REPORTS', icon: ICONS.reports },
-    { to: '/admin-wallet', end: false, label: 'WALLET', icon: ICONS.wallet },
-    { to: '/admin-gifts', end: false, label: 'GIFTS', icon: ICONS.membership },
-    { to: '/platform-settings', end: false, label: 'RATES', icon: ICONS.settings },
-    { to: '/settings', end: false, label: 'SETTINGS', icon: ICONS.settings },
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },
+    { more: true, label: 'MORE', icon: ICONS.more },
 
 ];
 
-const PROVIDER_NAV = [
+const PROVIDER_NAV: NavItem[] = [
     { to: '', end: true, label: 'HOME', icon: ICONS.home },
     { to: '/services', end: false, label: 'SERVICES', icon: ICONS.social },
     { to: '/membership', end: false, label: 'MEMBERSHIP', icon: ICONS.membership },
@@ -144,6 +156,7 @@ export function BottomNav() {
     else if (role === 'provider') NAV = PROVIDER_NAV;
 
     const basePath = `/${role}/dashboard`;
+    const [moreOpen, setMoreOpen] = useState(false);
 
     return (
         <nav
@@ -173,40 +186,43 @@ export function BottomNav() {
                 alignItems: 'center',
                 boxSizing: 'border-box',
             }}>
-                {NAV.map(item => (
-                    <NavLink
-                        key={item.label}
-                        to={`${basePath}${item.to}`}
-                        end={item.end}
-                        style={({ isActive }) => ({
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            height: '100%',
-                            flex: 1,
-                            padding: '0 2px',
-                            gap: '4px',
-                            textDecoration: 'none',
-                            color: isActive ? 'var(--gold-mid)' : 'var(--text-secondary)',
-                            transition: 'all 0.2s ease-in-out',
-                            fontSize: 'clamp(0.52rem, 1.8vw, 0.65rem)',
-                            letterSpacing: '0.06em',
-                            fontWeight: 700,
-                            textTransform: 'uppercase',
-                            textShadow: isActive ? '0 0 10px var(--gold-glow)' : 'none',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                        })}
-                    >
-                        {({ isActive }) => (
-                            <>
-                                <span style={{
-                                    color: isActive ? 'var(--gold-mid)' : 'var(--text-secondary)',
+                {NAV.map(item => {
+                    if (item.more) {
+                        return (
+                            <button
+                                key={item.label}
+                                type="button"
+                                onClick={() => setMoreOpen(true)}
+                                aria-label="More"
+                                style={{
                                     display: 'flex',
-                                    transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    height: '100%',
+                                    flex: 1,
+                                    padding: '0 2px',
+                                    gap: '4px',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: 'var(--text-secondary)',
+                                    transition: 'all 0.2s ease-in-out',
+                                    fontSize: 'clamp(0.52rem, 1.8vw, 0.65rem)',
+                                    letterSpacing: '0.06em',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    textShadow: 'none',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                }}
+                            >
+                                <span style={{
+                                    color: 'var(--text-secondary)',
+                                    display: 'flex',
+                                    transform: 'scale(1)',
                                     transition: 'transform 0.2s ease',
-                                    filter: isActive ? 'drop-shadow(0 0 8px var(--gold-mid))' : 'none',
+                                    filter: 'none',
                                 }}>
                                     {item.icon}
                                 </span>
@@ -218,11 +234,62 @@ export function BottomNav() {
                                 }}>
                                     {item.label}
                                 </span>
-                            </>
-                        )}
-                    </NavLink>
-                ))}
+                            </button>
+                        );
+                    }
+                    return (
+                        <NavLink
+                            key={item.label}
+                            to={`${basePath}${item.to}`}
+                            end={item.end}
+                            style={({ isActive }) => ({
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                height: '100%',
+                                flex: 1,
+                                padding: '0 2px',
+                                gap: '4px',
+                                textDecoration: 'none',
+                                color: isActive ? 'var(--gold-mid)' : 'var(--text-secondary)',
+                                transition: 'all 0.2s ease-in-out',
+                                fontSize: 'clamp(0.52rem, 1.8vw, 0.65rem)',
+                                letterSpacing: '0.06em',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                textShadow: isActive ? '0 0 10px var(--gold-glow)' : 'none',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                            })}
+                        >
+                            {({ isActive }) => (
+                                <>
+                                    <span style={{
+                                        color: isActive ? 'var(--gold-mid)' : 'var(--text-secondary)',
+                                        display: 'flex',
+                                        transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                                        transition: 'transform 0.2s ease',
+                                        filter: isActive ? 'drop-shadow(0 0 8px var(--gold-mid))' : 'none',
+                                    }}>
+                                        {item.icon}
+                                    </span>
+                                    <span style={{
+                                        textOverflow: 'ellipsis',
+                                        overflow: 'hidden',
+                                        width: '100%',
+                                        textAlign: 'center',
+                                    }}>
+                                        {item.label}
+                                    </span>
+                                </>
+                            )}
+                        </NavLink>
+                    );
+                })}
             </div>
+
+            <AdminMoreMenu open={moreOpen} onClose={() => setMoreOpen(false)} />
         </nav>
     );
 }
