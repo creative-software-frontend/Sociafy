@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TopNav } from './TopNav';
 import { adminApi } from '../../../utils/api';
 import type { Package, Feature, CreatePackagePayload } from '../../../utils/api';
@@ -258,6 +258,8 @@ function PackagesSection() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [showForm, setShowForm] = useState(false);
+    const [editingPkg, setEditingPkg] = useState<Package | null>(null);
+    const formRef = useRef<HTMLDivElement | null>(null);
 
     // Form state
     const [pkgType, setPkgType] = useState<'user' | 'provider'>('user');
@@ -300,7 +302,42 @@ function PackagesSection() {
         setPkgType('user');
     };
 
-    const handleCreate = async (e: React.FormEvent) => {
+    const handleEdit = (pkg: Package) => {
+        const normalizedFeatures = Array.isArray(pkg.features) ? pkg.features : [];
+        setEditingPkg(pkg);
+        setPkgType(pkg.type === 'provider' ? 'provider' : 'user');
+        setForm({
+            name: pkg.name,
+            description: pkg.description || '',
+            price: Number(pkg.price) || 0,
+            duration_months: pkg.duration_months || 1,
+            tier_type: pkg.tier_type || 'premium',
+            membership_level: pkg.membership_level || 1,
+        });
+        setSelectedFeatureIds(normalizedFeatures.map(f => (f as unknown as { id: number }).id).filter(Boolean));
+        setSelectedUserFeatureKeys(normalizedFeatures.map(f => (f as unknown as { key: string }).key).filter(Boolean));
+        setError('');
+        setSuccess('');
+        setShowForm(true);
+        // Scroll the edit form into view after it renders.
+        requestAnimationFrame(() => {
+            formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    };
+
+    const toggleForm = () => {
+        if (showForm) {
+            setShowForm(false);
+            resetForm();
+            setEditingPkg(null);
+        } else {
+            setShowForm(true);
+        }
+        setError('');
+        setSuccess('');
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(''); setSuccess('');
         if (!form.name || !form.price) { setError('Name and price are required.'); return; }
@@ -326,12 +363,16 @@ function PackagesSection() {
             features: featuresCsv,
         };
 
-        const res = await adminApi.createPackage(payload);
+        const res = editingPkg
+            ? await adminApi.updatePackage(editingPkg.id, payload)
+            : await adminApi.createPackage(payload);
+
         if (res.error) {
             setError(res.error);
         } else {
-            setSuccess('Package created successfully!');
+            setSuccess(editingPkg ? 'Package updated successfully!' : 'Package created successfully!');
             resetForm();
+            setEditingPkg(null);
             setShowForm(false);
             fetchAll();
         }
@@ -461,7 +502,19 @@ function PackagesSection() {
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap', borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>
+                    <button
+                        onClick={() => handleEdit(pkg)}
+                        className="btn btn-ghost btn-sm"
+                        style={{ color: 'var(--blue-vivid)', borderColor: 'rgba(59,130,246,0.3)', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.1)'; e.currentTarget.style.borderColor = 'rgba(59,130,246,0.5)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.borderColor = 'rgba(59,130,246,0.3)'; }}
+                    >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                        </svg>
+                        Edit
+                    </button>
                     <button
                         onClick={() => handleDelete(pkg.id, pkg.name)}
                         className="btn btn-ghost btn-sm"
@@ -501,7 +554,7 @@ function PackagesSection() {
                     </p>
                 </div>
                 <button
-                    onClick={() => { setShowForm(v => !v); setError(''); setSuccess(''); if (showForm) resetForm(); }}
+                    onClick={toggleForm}
                     style={{
                         display: 'flex', alignItems: 'center', gap: '6px',
                         padding: '8px 14px',
@@ -524,18 +577,42 @@ function PackagesSection() {
 
             {/* Create Form */}
             {showForm && (
-                <div className="card" style={{ marginBottom: '24px', position: 'relative', overflow: 'hidden' }}>
+                <div ref={formRef} className="card" style={{ marginBottom: '24px', position: 'relative', overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, var(--blue-vivid), transparent)' }} />
 
-                    <form onSubmit={handleCreate}>
+                    <form onSubmit={handleSubmit}>
+                        {/* Form title */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px' }}>
+                            <span style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                width: 28, height: 28, borderRadius: '8px',
+                                background: editingPkg ? 'var(--gold-glow)' : 'var(--blue-glow)',
+                                border: `1px solid ${editingPkg ? 'var(--border-gold)' : 'rgba(59,130,246,0.3)'}`,
+                                flexShrink: 0,
+                            }}>
+                                {editingPkg
+                                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold-mid)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
+                                    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue-vivid)" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>}
+                            </span>
+                            <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>
+                                {editingPkg ? 'Edit Package' : 'New Package'}
+                            </p>
+                        </div>
+
                         {/* Package Type Toggle */}
                         <div style={{ marginBottom: '20px' }}>
                             <label style={labelStyle}>Package Type *</label>
+                            {editingPkg && (
+                                <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif", margin: '0 0 8px' }}>
+                                    Package type is locked while editing.
+                                </p>
+                            )}
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 {(['user', 'provider'] as const).map(t => (
                                     <button
                                         key={t}
                                         type="button"
+                                        disabled={editingPkg != null}
                                         onClick={() => { setPkgType(t); setSelectedFeatureIds([]); setSelectedUserFeatureKeys([]); }}
                                         style={{
                                             flex: 1,
@@ -553,9 +630,10 @@ function PackagesSection() {
                                             fontSize: '0.75rem',
                                             fontWeight: 700,
                                             fontFamily: "'Inter', sans-serif",
-                                            cursor: 'pointer',
+                                            cursor: editingPkg != null ? 'not-allowed' : 'pointer',
                                             transition: 'all 0.2s',
                                             letterSpacing: '0.05em',
+                                            opacity: editingPkg != null && pkgType !== t ? 0.45 : 1,
                                         }}
                                     >
                                         {t === 'user' ? '👤 User Package' : '🏢 Provider Package'}
@@ -679,7 +757,7 @@ function PackagesSection() {
                                 boxShadow: submitting ? 'none' : '0 0 20px rgba(59,130,246,0.35)',
                             }}
                         >
-                            {submitting ? 'Creating…' : '✓ Create Package'}
+                            {submitting ? (editingPkg ? 'Updating…' : 'Creating…') : (editingPkg ? '✓ Update Package' : '✓ Create Package')}
                         </button>
                     </form>
                 </div>

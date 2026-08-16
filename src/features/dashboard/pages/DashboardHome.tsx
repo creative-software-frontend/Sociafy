@@ -12,6 +12,7 @@ import { QuickLinksGrid } from './home/components/QuickLinksGrid';
 import { RecentActivityCard } from './home/components/RecentActivityCard';
 import { FeaturedProfiles } from './home/components/FeaturedProfiles';
 import { FeaturedLocations } from './home/components/FeaturedLocations';
+import { AdminHome } from './home/components/AdminHome';
 
 export interface FeaturedProfile {
     id: number;
@@ -51,6 +52,7 @@ export function DashboardHome() {
 
     const isProviderDashboard = role === 'provider';
     const isUserDashboard = role === 'user';
+    const isAdminDashboard = role === 'admin';
     const showOnlineCard = isProviderDashboard || isUserDashboard;
 
     const [profiles, setProfiles] = useState<FeaturedProfile[]>([]);
@@ -245,6 +247,17 @@ export function DashboardHome() {
         loadEventLocations();
         loadUserActivity();
     }, [isUserDashboard]);
+
+    if (isAdminDashboard) {
+        return (
+            <div style={{ background: 'var(--bg-root)', minHeight: '100svh', overflowX: 'hidden' }}>
+                <TopNav />
+                <div style={{ padding: 'clamp(80px, 22vw, 100px) clamp(12px, 4vw, 16px) 16px', width: '100%', boxSizing: 'border-box' }}>
+                    <AdminHome />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div style={{ background: 'var(--bg-root)', minHeight: '100svh', overflowX: 'hidden' }}>
