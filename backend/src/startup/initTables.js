@@ -806,6 +806,34 @@ module.exports = async (db) => {
         await addFKIfNotExists('chat_messages', 'fk_chat_receiver', 'receiver_id', 'users', 'id', 'CASCADE');
         console.log('chat_messages table verified');
 
+        // ════════════════════════════════════════════════════════════
+        // Gift Asset Library — resilient self-heal when migrations weren't run
+        // ════════════════════════════════════════════════════════════
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS gift_assets (
+                id          INT AUTO_INCREMENT PRIMARY KEY,
+                name        VARCHAR(100) NOT NULL,
+                asset_type  VARCHAR(10)  NOT NULL DEFAULT 'png',
+                url         VARCHAR(2048) NOT NULL,
+                storage_key VARCHAR(255) NULL,
+                is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_ga_active (is_active)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        const [giftCols] = await db.query(
+            "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'gifts'"
+        );
+        const giftColNames = giftCols.map(c => c.COLUMN_NAME.toLowerCase());
+        if (!giftColNames.includes('asset_id')) {
+            await db.query(`ALTER TABLE gifts ADD COLUMN asset_id INT NULL`);
+            console.log('✅ Added asset_id to gifts');
+        }
+        await addFKIfNotExists('gifts', 'fk_gifts_asset', 'asset_id', 'gift_assets', 'id', 'SET NULL');
+        console.log('gift_assets library verified');
+
         console.log('\n🎉 DB initialized successfully — all tables & foreign keys are set up.\n');
 
     } catch (err) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { giftApi } from '../services/giftApi';
 import type { Gift } from '../types/gift';
+import { GiftVisual } from './GiftVisual';
 import { PointsDisplay } from '../../../components/PointsDisplay';
 
 interface Props {
@@ -130,11 +131,7 @@ export function GiftPickerModal({ onClose, onSend }: Props) {
                                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.12)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; }}
                                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
                             >
-                                {g.image ? (
-                                    <img src={g.image} alt={g.name} style={{ width: 44, height: 44, objectFit: 'contain' }} />
-                                ) : (
-                                    <span style={{ fontSize: '2rem', lineHeight: 1 }}>{g.icon || '🎁'}</span>
-                                )}
+                                <GiftVisual gift={g} />
                                 <span style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 600 }}>{g.name}</span>
                                 <span style={{ color: 'rgba(139,92,246,0.9)', fontSize: '0.72rem', fontWeight: 700 }}><PointsDisplay amount={g.price} decimals={2} /></span>
                             </button>

@@ -6,12 +6,13 @@ const ALLOWED_MIME = new Set([
     "image/jpg",
     "image/png",
     "image/webp",
+    "image/gif",
 ]);
 
-const ALLOWED_EXT = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+const ALLOWED_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
 
 // Valid upload folders — object-key prefixes, never raw user paths.
-const ALLOWED_FOLDERS = new Set(["avatars", "posts", "deposits"]);
+const ALLOWED_FOLDERS = new Set(["avatars", "posts", "deposits", "gifts"]);
 
 function getExtFromOriginalName(originalName = "") {
     return path.extname(originalName).toLowerCase();
@@ -23,10 +24,10 @@ const upload = multer({
     fileFilter: (req, file, cb) => {
         const ext = getExtFromOriginalName(file.originalname);
         if (!ALLOWED_EXT.has(ext)) {
-            return cb(new Error("Only jpg/jpeg/png/webp files are allowed"));
+            return cb(new Error("Only jpg/jpeg/png/webp/gif files are allowed"));
         }
         if (!ALLOWED_MIME.has(file.mimetype)) {
-            return cb(new Error("Only jpg/jpeg/png/webp files are allowed"));
+            return cb(new Error("Only jpg/jpeg/png/webp/gif files are allowed"));
         }
         cb(null, true);
     },

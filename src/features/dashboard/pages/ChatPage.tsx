@@ -15,6 +15,7 @@ import { CallButton } from '../../call/components/CallButton';
 import { useCallContext } from '../../call/context/callContextValue';
 import { callApi } from '../../call/services/callApi';
 import { GiftPickerModal } from '../../gift/components/GiftPickerModal';
+import { GiftVisual } from '../../gift/components/GiftVisual';
 import { parseGiftMessage } from '../../gift/types/gift';
 import type { Gift } from '../../gift/types/gift';
 
@@ -643,7 +644,7 @@ export function ChatPage() {
                                                                 minWidth: 120,
                                                                 textAlign: 'center' as const,
                                                             }}>
-                                                                <div style={{ fontSize: '2rem', lineHeight: 1, marginBottom: 4 }}>{gift.icon || '🎁'}</div>
+                                                                <GiftVisual gift={{ name: gift.giftName, icon: gift.icon, image: gift.image ?? null }} size={40} fontSize="2rem" />
                                                                 <p style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700, margin: '0 0 2px' }}>
                                                                     {gift.giftName} Gift
                                                                 </p>

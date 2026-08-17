@@ -11,15 +11,17 @@ let users = [];
 let giftTransactions = [];
 let chatMessages = [];
 let transactions = [];
+let assets = [];
 let adminWallet = { id: 1, balance: 0 };
 let adminWalletTransactions = [];
 let nextGiftId = 1;
 let nextChatId = 1;
+let nextAssetId = 1;
 
 function seed() {
     gifts = [
-        { id: 1, name: 'Rose', icon: '🌹', image: null, price: 10, provider_percentage: 70, admin_percentage: 30, is_active: 1, created_at: null, updated_at: null },
-        { id: 2, name: 'Diamond', icon: '💎', image: null, price: 100, provider_percentage: 70, admin_percentage: 30, is_active: 0, created_at: null, updated_at: null },
+        { id: 1, name: 'Rose', icon: '🌹', image: null, price: 10, provider_percentage: 70, admin_percentage: 30, asset_id: null, is_active: 1, created_at: null, updated_at: null },
+        { id: 2, name: 'Diamond', icon: '💎', image: null, price: 100, provider_percentage: 70, admin_percentage: 30, asset_id: null, is_active: 0, created_at: null, updated_at: null },
     ];
     users = [
         { id: 1, name: 'Admin', role: 'admin', balance: 0, earnings: 0 },
@@ -29,29 +31,83 @@ function seed() {
     giftTransactions = [];
     chatMessages = [];
     transactions = [];
+    assets = [];
     adminWallet = { id: 1, balance: 0 };
     adminWalletTransactions = [];
     nextGiftId = 3;
     nextChatId = 1;
+    nextAssetId = 1;
 }
 
 function route(sql, values = []) {
-    const S = String(sql);
+    const S = String(sql).toLowerCase();
 
-    // gift SELECTs
-    if (/select \* from gifts where is_active = 1/i.test(S)) {
-        return gifts.filter((g) => g.is_active === 1).map((g) => ({ ...g }));
+    // gift SELECTs (now LEFT JOINs the gift asset library)
+    if (S.includes('from gifts g') && S.includes('left join gift_assets')) {
+        const rows = S.includes('where g.is_active = 1') ? gifts.filter((g) => g.is_active === 1) : gifts;
+        const withAsset = (g) => {
+            const a = g.asset_id != null ? assets.find((x) => x.id === Number(g.asset_id)) : null;
+            return {
+                ...g,
+                asset_id: g.asset_id ?? null,
+                ga_id: a ? a.id : null,
+                asset_name: a ? a.name : null,
+                asset_type: a ? a.asset_type : null,
+                asset_url: a ? a.url : null,
+            };
+        };
+        if (S.includes('where g.id = ?')) {
+            const g = rows.find((x) => x.id === Number(values[0]));
+            return g ? [withAsset(g)] : [];
+        }
+        return rows.map(withAsset);
     }
-    if (/select \* from gifts\s+order by price asc/i.test(S)) {
-        return gifts.map((g) => ({ ...g }));
+    // Gift asset library (service-level)
+    if (S.startsWith('select') && S.includes('from gift_assets')) {
+        const base = S.includes('where is_active = 1')
+            ? assets.filter((a) => a.is_active === 1)
+            : assets;
+        if (S.includes('where id = ?')) {
+            const a = base.find((x) => x.id === Number(values[0]));
+            return a ? [{ ...a }] : [];
+        }
+        return base.map((a) => ({ ...a }));
     }
-    if (/select \* from gifts where id = \?/i.test(S)) {
-        const g = gifts.find((x) => x.id === Number(values[0]));
-        return g ? [{ ...g }] : [];
+    if (S.includes('insert into gift_assets')) {
+        const [name, assetType, url, storageKey] = values;
+        const a = {
+            id: nextAssetId++,
+            name,
+            asset_type: assetType,
+            url,
+            storage_key: storageKey,
+            is_active: 1,
+            created_at: null,
+            updated_at: null,
+        };
+        assets.push(a);
+        return { insertId: a.id, affectedRows: 1 };
+    }
+    if (S.includes('update gift_assets set')) {
+        const matches = S.match(/update gift_assets set name = \?, is_active = \? where id = \?/);
+        const [name, isActive, id] = values;
+        const a = assets.find((x) => x.id === Number(id));
+        if (a) { if (name !== undefined) a.name = name; a.is_active = Number(isActive); }
+        return { affectedRows: a ? 1 : 0 };
+    }
+    if (S.includes('delete from gift_assets')) {
+        const id = Number(values[0]);
+        const idx = assets.findIndex((x) => x.id === id);
+        if (idx >= 0) assets.splice(idx, 1);
+        return { affectedRows: idx >= 0 ? 1 : 0 };
+    }
+    if (S.includes('select id from gifts where asset_id = ?')) {
+        const existing = gifts.find((g) => g.asset_id === Number(values[0]));
+        return existing ? [{ id: existing.id }] : [];
     }
     // INSERT gift
     if (/^insert into gifts/i.test(S)) {
-        const [name, icon, image, price, providerPct, adminPct, isActive] = values;
+        const [name, icon, image, price, providerPct, adminPct, assetId, isActive] = values;
         const g = {
             id: nextGiftId++,
             name,
@@ -60,6 +116,7 @@ function route(sql, values = []) {
             price: Number(price),
             provider_percentage: Number(providerPct),
             admin_percentage: Number(adminPct),
+            asset_id: assetId ? Number(assetId) : null,
             is_active: Number(isActive),
             created_at: null,
             updated_at: null,
@@ -154,6 +211,16 @@ function route(sql, values = []) {
             created_at: new Date().toISOString(),
         });
         return { insertId: transactions.length, affectedRows: 1 };
+    }
+
+    if (S.includes('select membership_package_id, membership_expires_at from users')) {
+        const u = users.find((x) => x.id === Number(values[0]));
+        return u ? [{ membership_package_id: null, membership_expires_at: null }] : [];
+    }
+    if (S.includes('update users set last_seen')) return { affectedRows: 1 };
+    if (/select role, is_active from users where id = \?/i.test(S)) {
+        const u = users.find((x) => x.id === Number(values[0]));
+        return u ? [{ role: u.role, is_active: 1 }] : [];
     }
 
     return [];
@@ -280,4 +347,149 @@ test('a ৳10 gift distributes ৳7 to provider and ৳3 to admin', async () => 
     assert.equal(tx.admin_amount, 3);
     assert.equal(users.find((u) => u.id === 3).balance, 7);
     assert.equal(adminWallet.balance, 3);
+});
+
+
+// -- Asset library + route-level authorization tests ----------------------------
+const test2 = test;
+
+const storageServicePath = require.resolve('../src/services/storageService.js');
+require.cache[storageServicePath] = {
+    id: storageServicePath,
+    filename: storageServicePath,
+    loaded: true,
+    exports: {
+        uploadFile: async ({ folder, filename, buffer, mimetype }) => ({
+            key: `${folder}/asset-${nextAssetId}.gif`,
+            url: `https://cdn.example.com/${folder}/asset-${nextAssetId}.gif`,
+        }),
+        deleteFile: async () => {},
+        getPublicUrl: () => '',
+    },
+};
+
+const giftController = require('../src/controllers/giftController');
+const giftRoutes = require('../src/routes/giftRoutes');
+
+const http = require('http');
+const jwt = require('jsonwebtoken');
+const express = require('express');
+process.env.JWT_SECRET = 'test-secret-gift-assets-000';
+
+const assetApp = express();
+assetApp.use(express.json());
+assetApp.use('/api/admin/gifts', giftRoutes.adminRouter);
+assetApp.use('/api/gift', giftRoutes.userRouter);
+assetApp.use((req, res) => res.status(404).json({ message: 'not found' }));
+
+let assetServer;
+let assetBase;
+
+test2.before(async () => {
+    assetServer = http.createServer(assetApp);
+    await new Promise((r) => assetServer.listen(0, r));
+    assetBase = `http://127.0.0.1:${assetServer.address().port}`;
+});
+
+test2.after(async () => {
+    if (assetServer) await new Promise((r) => assetServer.close(r));
+});
+
+function assetSign(id, role) { return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '1h' }); }
+
+async function assetCall(method, path, { token, body, formData } = {}) {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (body) headers['Content-Type'] = 'application/json';
+    const res = await fetch(`${assetBase}${path}`, {
+        method,
+        headers,
+        body: formData || (body ? JSON.stringify(body) : undefined),
+    });
+    let json = null;
+    try { json = await res.json(); } catch (_) {}
+    return { status: res.status, json };
+}
+
+test2('asset library: admin can create an asset (stored through the storage abstraction)', async () => {
+    seed();
+    const asset = await giftService.createGiftAsset({ name: 'Rose anim', asset_type: 'gif', url: 'https://cdn.example.com/gifts/x.gif', storage_key: 'gifts/x.gif' });
+    assert.equal(asset.id, 1);
+    assert.equal(asset.asset_type, 'gif');
+    assert.equal(asset.is_active, 1);
+    assert.equal(assets.length, 1);
+});
+
+test2('asset library: inactive assets are not exposed via getGiftAssets()', async () => {
+    seed();
+    await giftService.createGiftAsset({ name: 'A', asset_type: 'png', url: 'https://cdn/a.png', storage_key: 'gifts/a.png' });
+    await giftService.createGiftAsset({ name: 'B', asset_type: 'gif', url: 'https://cdn/b.gif', storage_key: 'gifts/b.gif' });
+    await giftService.updateGiftAsset(2, { is_active: false });
+    const active = await giftService.getGiftAssets();
+    assert.equal(active.length, 1);
+    assert.equal(active[0].id, 1);
+});
+
+test2('asset library: a gift can reference an asset and exposes it', async () => {
+    seed();
+    const asset = await giftService.createGiftAsset({ name: 'Rose anim', asset_type: 'gif', url: 'https://cdn/rose.gif', storage_key: 'gifts/rose.gif' });
+    const g = await giftService.createGift({ name: 'Rose', icon: '??', price: 10, provider_percentage: 70, admin_percentage: 30, asset_id: asset.id });
+    assert.equal(g.asset_id, asset.id);
+    assert.equal(g.asset?.url, 'https://cdn/rose.gif');
+    assert.equal(g.asset?.asset_type, 'gif');
+});
+
+test2('asset library: deleting a referenced asset is rejected', async () => {
+    seed();
+    const asset = await giftService.createGiftAsset({ name: 'Rose anim', asset_type: 'gif', url: 'https://cdn/rose.gif', storage_key: 'gifts/rose.gif' });
+    await giftService.createGift({ name: 'Rose', price: 10, provider_percentage: 70, admin_percentage: 30, asset_id: asset.id });
+    await assert.rejects(() => giftService.deleteGiftAsset(asset.id), /used by one or more gifts/);
+    assert.equal(assets.length, 1, 'asset must still exist');
+});
+
+test2('asset library: unreferenced asset can be deleted', async () => {
+    seed();
+    const asset = await giftService.createGiftAsset({ name: 'Orphan', asset_type: 'png', url: 'https://cdn/orphan.png', storage_key: 'gifts/orphan.png' });
+    await giftService.deleteGiftAsset(asset.id);
+    assert.equal(assets.length, 0);
+});
+
+test2('route: non-admin cannot create an asset (403)', async () => {
+    seed();
+    const token = assetSign(2, 'user');
+    const { status } = await assetCall('POST', '/api/admin/gifts/assets', { token });
+    assert.equal(status, 403);
+});
+
+test2('route: admin GIF upload is accepted and stored via the storage abstraction', async () => {
+    seed();
+    const token = assetSign(1, 'admin');
+    const fd = new FormData();
+    fd.append('name', 'Animated rose');
+    fd.append('image', new Blob([Buffer.from([0x47, 0x49, 0x46])], { type: 'image/gif' }), 'rose.gif');
+    const { status, json } = await assetCall('POST', '/api/admin/gifts/assets', { token, formData: fd });
+    assert.equal(status, 201);
+    assert.equal(json.asset.asset_type, 'gif');
+    assert.ok(json.asset.url.includes('cdn.example.com'), 'asset persisted through storage abstraction');
+});
+
+test2('route: unsupported file type is rejected (400)', async () => {
+    seed();
+    const token = assetSign(1, 'admin');
+    const fd = new FormData();
+    fd.append('name', 'bad');
+    fd.append('image', new Blob([Buffer.from('MZ')], { type: 'application/x-msdownload' }), 'evil.exe');
+    const { status } = await assetCall('POST', '/api/admin/gifts/assets', { token, formData: fd });
+    assert.equal(status, 400);
+});
+
+test2('route: existing gift sending still works over the API (points + split unchanged)', async () => {
+    seed();
+    const userTok = assetSign(2, 'user');
+    const { status } = await assetCall('POST', '/api/gift/send', { token: userTok, body: { receiver_id: 3, gift_id: 1 } });
+    assert.equal(status, 200);
+    assert.equal(users.find((u) => u.id === 2).balance, 90);
+    assert.equal(users.find((u) => u.id === 3).balance, 7);
+    assert.equal(adminWallet.balance, 3);
+    assert.equal(giftTransactions.length, 1);
 });

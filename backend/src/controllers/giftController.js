@@ -1,4 +1,6 @@
+const path = require("path");
 const giftService = require("../services/giftService");
+const storageService = require("../services/storageService");
 const { handleError } = require("../utils/httpError");
 
 function parsePrice(v) {
@@ -17,6 +19,14 @@ function requireName(v) {
     return typeof v === "string" && v.trim() ? v.trim() : null;
 }
 
+function assetTypeFromName(name) {
+    const ext = path.extname(String(name || "")).toLowerCase();
+    if (ext === ".gif") return "gif";
+    if (ext === ".jpg" || ext === ".jpeg") return "jpg";
+    if (ext === ".webp") return "webp";
+    return "png";
+}
+
 /* ── Public / User endpoints ── */
 async function listGifts(req, res) {
     try {
@@ -24,6 +34,15 @@ async function listGifts(req, res) {
         return res.json({ gifts });
     } catch (err) {
         return handleError(res, err, "Failed to fetch gifts");
+    }
+}
+
+async function listAssets(req, res) {
+    try {
+        const assets = await giftService.getGiftAssets();
+        return res.json({ assets });
+    } catch (err) {
+        return handleError(res, err, "Failed to fetch gift assets");
     }
 }
 
@@ -82,9 +101,9 @@ async function adminCreateGift(req, res) {
             price,
             provider_percentage: providerPct,
             admin_percentage: adminPct,
-            // is_active is intentionally NOT forwarded: createGift() always
-            // creates gifts as ACTIVE. Activation state is changed only through
-            // the dedicated toggle endpoint.
+            asset_id: req.body.asset_id !== undefined && req.body.asset_id !== null && req.body.asset_id !== ''
+                ? Number(req.body.asset_id)
+                : null,
         });
         return res.json({ gift });
     } catch (err) {
@@ -117,6 +136,9 @@ async function adminUpdateGift(req, res) {
             price: price ?? current.price,
             provider_percentage: providerPct ?? current.provider_percentage,
             admin_percentage: adminPct ?? current.admin_percentage,
+            asset_id: body.asset_id !== undefined && body.asset_id !== null && body.asset_id !== ''
+                ? Number(body.asset_id)
+                : (body.asset_id === null ? null : current.asset_id),
         });
         return res.json({ gift });
     } catch (err) {
@@ -145,8 +167,67 @@ async function adminDeleteGift(req, res) {
     }
 }
 
+/* ── Admin Gift Asset Library ── */
+async function adminListAssets(req, res) {
+    try {
+        const assets = await giftService.getGiftAssets({ includeInactive: true });
+        return res.json({ assets });
+    } catch (err) {
+        return handleError(res, err, "Failed to fetch gift assets");
+    }
+}
+
+async function adminCreateAsset(req, res) {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: "An image/gif file is required" });
+        }
+        const name = requireName(req.body.name) || requireName(req.file.originalname) || "Gift asset";
+        const { key, url } = await storageService.uploadFile({
+            folder: "gifts",
+            filename: req.file.originalname,
+            buffer: req.file.buffer,
+            mimetype: req.file.mimetype,
+        });
+        const asset = await giftService.createGiftAsset({
+            name,
+            asset_type: assetTypeFromName(req.file.originalname),
+            url,
+            storage_key: key,
+        });
+        return res.status(201).json({ asset });
+    } catch (err) {
+        return handleError(res, err, "Failed to create gift asset");
+    }
+}
+
+async function adminUpdateAsset(req, res) {
+    try {
+        const id = Number(req.params.id);
+        const body = req.body || {};
+        const asset = await giftService.updateGiftAsset(id, {
+            name: body.name !== undefined ? requireName(body.name) : undefined,
+            is_active: body.is_active !== undefined ? !!body.is_active : undefined,
+        });
+        if (!asset) return res.status(404).json({ message: "Gift asset not found" });
+        return res.json({ asset });
+    } catch (err) {
+        return handleError(res, err, "Failed to update gift asset");
+    }
+}
+
+async function adminDeleteAsset(req, res) {
+    try {
+        await giftService.deleteGiftAsset(Number(req.params.id));
+        return res.json({ message: "Gift asset deleted" });
+    } catch (err) {
+        return handleError(res, err, "Failed to delete gift asset");
+    }
+}
+
 module.exports = {
     listGifts,
+    listAssets,
     sendGift,
     getHistory,
     adminListGifts,
@@ -154,4 +235,8 @@ module.exports = {
     adminUpdateGift,
     adminToggleGift,
     adminDeleteGift,
+    adminListAssets,
+    adminCreateAsset,
+    adminUpdateAsset,
+    adminDeleteAsset,
 };

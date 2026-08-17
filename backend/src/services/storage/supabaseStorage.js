@@ -23,8 +23,8 @@ const REQUIRED = [
     "SUPABASE_STORAGE_PUBLIC_URL",
 ];
 
-const ALLOWED_FOLDERS = new Set(["avatars", "posts", "deposits"]);
-const ALLOWED_EXT = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+const ALLOWED_FOLDERS = new Set(["avatars", "posts", "deposits", "gifts"]);
+const ALLOWED_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
 
 function getConfig() {
     const missing = REQUIRED.filter((k) => !process.env[k] || !String(process.env[k]).trim());

@@ -1,3 +1,14 @@
+export interface GiftAsset {
+    id: number;
+    name: string;
+    asset_type: string; // gif | png | jpg | webp
+    url: string;
+    storage_key?: string | null;
+    is_active: number;
+    created_at?: string;
+    updated_at?: string;
+}
+
 export interface Gift {
     id: number;
     name: string;
@@ -7,6 +18,8 @@ export interface Gift {
     provider_percentage: number;
     admin_percentage: number;
     is_active: number;
+    asset_id?: number | null;
+    asset?: GiftAsset | null;
     created_at?: string;
     updated_at?: string;
 }
@@ -23,6 +36,8 @@ export interface GiftHistoryItem {
     created_at: string;
     gift_name: string;
     gift_icon: string | null;
+    gift_asset_url?: string | null;
+    gift_asset_type?: string | null;
     sender_name: string;
     receiver_name: string;
 }
@@ -32,6 +47,7 @@ export interface GiftMessageData {
     giftId: number;
     giftName: string;
     icon: string;
+    image?: string | null;
     price: number;
 }
 
