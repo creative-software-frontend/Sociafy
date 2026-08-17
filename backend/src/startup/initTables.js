@@ -562,7 +562,7 @@ module.exports = async (db) => {
             CREATE TABLE IF NOT EXISTS transactions (
                 id          INT AUTO_INCREMENT PRIMARY KEY,
                 user_id     INT NOT NULL,
-                type        ENUM('deposit','withdraw','earning','event_payment','event_income','membership_purchase') NOT NULL,
+                type        ENUM('deposit','withdraw','earning','event_payment','event_income','membership_purchase','gift_purchase','gift_income') NOT NULL,
                 amount      DECIMAL(15,2) NOT NULL,
                 status      VARCHAR(20)   DEFAULT 'completed',
                 description VARCHAR(255),
@@ -571,14 +571,15 @@ module.exports = async (db) => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
-        // ✅ Fix ENUM — always keep ALL values
+        // ✅ Fix ENUM — always keep ALL values (incl. gift types)
         const [txCols] = await db.query("SHOW COLUMNS FROM transactions LIKE 'type'");
         if (txCols && txCols.length) {
             const enumStr = String(txCols[0].Type);
-            if (!enumStr.includes('membership_purchase') || !enumStr.includes('event_payment')) {
+            if (!enumStr.includes('membership_purchase') || !enumStr.includes('event_payment')
+                || !enumStr.includes('gift_purchase') || !enumStr.includes('gift_income')) {
                 await db.query(
                     `ALTER TABLE transactions MODIFY COLUMN type
-                     ENUM('deposit','withdraw','earning','event_payment','event_income','membership_purchase') NOT NULL`
+                     ENUM('deposit','withdraw','earning','event_payment','event_income','membership_purchase','gift_purchase','gift_income') NOT NULL`
                 );
                 console.log('Fixed transactions ENUM');
             }
@@ -807,8 +808,60 @@ module.exports = async (db) => {
         console.log('chat_messages table verified');
 
         // ════════════════════════════════════════════════════════════
-        // Gift Asset Library — resilient self-heal when migrations weren't run
+        // Gift catalog + gift transactions + Gift Asset Library
+        // Resilient self-heal when migrations weren't run (fresh deployments)
         // ════════════════════════════════════════════════════════════
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS gifts (
+                id                  INT AUTO_INCREMENT PRIMARY KEY,
+                name                VARCHAR(100) NOT NULL,
+                icon                VARCHAR(10) NULL,
+                image               VARCHAR(255) NULL,
+                price               DECIMAL(10,2) NOT NULL DEFAULT 0,
+                provider_percentage DECIMAL(5,2) NOT NULL DEFAULT 70,
+                admin_percentage    DECIMAL(5,2) NOT NULL DEFAULT 30,
+                asset_id            INT NULL,
+                is_active           TINYINT(1) NOT NULL DEFAULT 1,
+                created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+
+        const [giftCount] = await db.query(`SELECT COUNT(*) AS total FROM gifts`);
+        if (!giftCount.length || Number(giftCount[0].total) === 0) {
+            await db.query(`
+                INSERT INTO gifts (name, icon, price, provider_percentage, admin_percentage)
+                VALUES
+                    ('Rose',    '🌹', 10,  70, 30),
+                    ('Heart',   '❤️', 20,  70, 30),
+                    ('Cake',    '🎂', 50,  70, 30),
+                    ('Diamond', '💎', 100, 70, 30),
+                    ('Crown',   '👑', 200, 70, 30)
+            `);
+        }
+        console.log('gifts table verified');
+
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS gift_transactions (
+                id              INT AUTO_INCREMENT PRIMARY KEY,
+                sender_id       INT NOT NULL,
+                receiver_id     INT NOT NULL,
+                gift_id         INT NOT NULL,
+                gift_price      DECIMAL(10,2) NOT NULL,
+                provider_amount DECIMAL(10,2) NOT NULL,
+                admin_amount    DECIMAL(10,2) NOT NULL,
+                message_id      INT NULL,
+                created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_gt_sender   (sender_id),
+                INDEX idx_gt_receiver (receiver_id),
+                INDEX idx_gt_created  (created_at),
+                CONSTRAINT fk_gt_sender   FOREIGN KEY (sender_id)   REFERENCES users(id) ON DELETE CASCADE,
+                CONSTRAINT fk_gt_receiver FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
+                CONSTRAINT fk_gt_gift     FOREIGN KEY (gift_id)     REFERENCES gifts(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('gift_transactions table verified');
+
         await db.query(`
             CREATE TABLE IF NOT EXISTS gift_assets (
                 id          INT AUTO_INCREMENT PRIMARY KEY,
