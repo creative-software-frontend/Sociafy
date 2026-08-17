@@ -6,10 +6,12 @@ import {
     type ReportsData,
     type UsersSummaryData,
     type AdminWalletTransaction,
+    type WithdrawRequestItem,
 } from '../../../../../utils/api';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useToast } from '../../../../../components/Toast';
 import { PointsDisplay } from '../../../../../components/PointsDisplay';
+import { WithdrawReviewModal } from '../../WithdrawReviewModal';
 
 interface AdminWalletData {
     balance: number;
@@ -107,6 +109,7 @@ export function AdminHome() {
     const [loading, setLoading] = useState<LoadFns>({ users: true, reports: true, wallet: true, pending: true });
     const [apiError, setApiError] = useState<string | null>(null);
     const [busyKey, setBusyKey] = useState<string | null>(null);
+    const [selectedWithdraw, setSelectedWithdraw] = useState<WithdrawRequestItem | null>(null);
 
     const loadUsers = () => {
         adminApi.getUsersSummary()
@@ -143,17 +146,17 @@ export function AdminHome() {
         loadPending();
     }, []);
 
-    const handleRequestAction = async (kind: 'deposit' | 'withdraw', id: number, action: 'approve' | 'reject') => {
+    const handleRequestAction = async (kind: 'deposit', id: number, action: 'approve' | 'reject') => {
         setBusyKey(`${kind}-${id}`);
-        const res = kind === 'deposit'
-            ? (action === 'approve' ? await adminApi.approveDepositRequest(id) : await adminApi.rejectDepositRequest(id))
-            : (action === 'approve' ? await adminApi.approveWithdrawRequest(id) : await adminApi.rejectWithdrawRequest(id));
+        const res = action === 'approve'
+            ? await adminApi.approveDepositRequest(id)
+            : await adminApi.rejectDepositRequest(id);
         setBusyKey(null);
         if (res.error) {
             toast.error(res.error);
             return;
         }
-        toast.success(`${kind === 'deposit' ? 'Deposit' : 'Withdrawal'} ${action === 'approve' ? 'approved' : 'rejected'}.`);
+        toast.success(`Deposit ${action === 'approve' ? 'approved' : 'rejected'}.`);
         loadPending();
         loadWallet();
         loadReports();
@@ -176,6 +179,7 @@ export function AdminHome() {
             name: w.user_name || `User #${w.user_id}`,
             amount: w.amount,
             created_at: w.created_at,
+            withdraw: w as WithdrawRequestItem,
         })),
     ].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 5);
 
@@ -357,32 +361,49 @@ export function AdminHome() {
                                         </p>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
-                                        <button
-                                            type="button"
-                                            disabled={busy || busyKey !== null}
-                                            onClick={() => handleRequestAction(item.kind, item.id, 'approve')}
-                                            style={{
-                                                padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                                                background: 'linear-gradient(135deg,#22c55e,#16a34a)', color: '#fff',
-                                                fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase',
-                                                fontFamily: "'Inter', sans-serif", opacity: busy || busyKey !== null ? 0.5 : 1,
-                                            }}
-                                        >
-                                            {busy ? '…' : 'Approve'}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            disabled={busy || busyKey !== null}
-                                            onClick={() => handleRequestAction(item.kind, item.id, 'reject')}
-                                            style={{
-                                                padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.4)', cursor: 'pointer',
-                                                background: 'rgba(239,68,68,0.12)', color: 'var(--red-status)',
-                                                fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase',
-                                                fontFamily: "'Inter', sans-serif", opacity: busy || busyKey !== null ? 0.5 : 1,
-                                            }}
-                                        >
-                                            {busy ? '…' : 'Reject'}
-                                        </button>
+                                        {item.kind === 'withdraw' && item.withdraw ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedWithdraw(item.withdraw)}
+                                                style={{
+                                                    padding: '6px 14px', borderRadius: '8px', cursor: 'pointer',
+                                                    background: 'var(--blue-glow)', border: '1px solid rgba(59,130,246,0.3)',
+                                                    color: 'var(--blue-vivid)', fontSize: '0.6rem', fontWeight: 800,
+                                                    letterSpacing: '0.05em', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif",
+                                                }}
+                                            >
+                                                Review
+                                            </button>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    disabled={busy || busyKey !== null}
+                                                    onClick={() => handleRequestAction('deposit', item.id, 'approve')}
+                                                    style={{
+                                                        padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                                                        background: 'linear-gradient(135deg,#22c55e,#16a34a)', color: '#fff',
+                                                        fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase',
+                                                        fontFamily: "'Inter', sans-serif", opacity: busy || busyKey !== null ? 0.5 : 1,
+                                                    }}
+                                                >
+                                                    {busy ? '…' : 'Approve'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={busy || busyKey !== null}
+                                                    onClick={() => handleRequestAction('deposit', item.id, 'reject')}
+                                                    style={{
+                                                        padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.4)', cursor: 'pointer',
+                                                        background: 'rgba(239,68,68,0.12)', color: 'var(--red-status)',
+                                                        fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase',
+                                                        fontFamily: "'Inter', sans-serif", opacity: busy || busyKey !== null ? 0.5 : 1,
+                                                    }}
+                                                >
+                                                    {busy ? '…' : 'Reject'}
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -569,6 +590,18 @@ export function AdminHome() {
                     ))}
                 </div>
             </div>
+
+            {selectedWithdraw && (
+                <WithdrawReviewModal
+                    withdrawal={selectedWithdraw}
+                    onClose={() => setSelectedWithdraw(null)}
+                    onAction={() => {
+                        loadPending();
+                        loadWallet();
+                        loadReports();
+                    }}
+                />
+            )}
         </div>
     );
 }

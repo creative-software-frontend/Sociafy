@@ -10,5 +10,6 @@ router.patch("/deposit/:id/reject", authMiddleware, roleMiddleware(["admin"]), w
 router.get("/withdraw-requests", authMiddleware, roleMiddleware(["admin"]), walletController.getAdminWithdrawRequests);
 router.patch("/withdraw/:id/approve", authMiddleware, roleMiddleware(["admin"]), walletController.approveWithdraw);
 router.patch("/withdraw/:id/reject", authMiddleware, roleMiddleware(["admin"]), walletController.rejectWithdraw);
+router.patch("/withdraw/:id/complete", authMiddleware, roleMiddleware(["admin"]), walletController.completeWithdraw);
 
 module.exports = router;

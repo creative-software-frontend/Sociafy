@@ -633,6 +633,46 @@ module.exports = async (db) => {
         await addFKIfNotExists('withdraw_requests', 'fk_wdw_approved',  'approved_by', 'users', 'id', 'SET NULL');
         console.log('withdraw_requests table verified');
 
+        // ── withdraw_requests audit/payment columns ─────────────
+        // Resume-idempotent: ensure the audit fields used by the production
+        // withdrawal workflow exist even when migrations weren't run.
+        const [wdCols] = await db.query(
+            "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'withdraw_requests'"
+        );
+        const wdColNames = wdCols.map(c => c.COLUMN_NAME.toLowerCase());
+        const ensureWdCol = async (col, ddl) => {
+            if (!wdColNames.includes(col)) {
+                await db.query(`ALTER TABLE withdraw_requests ${ddl}`);
+            }
+        };
+        await ensureWdCol('request_id', 'ADD COLUMN request_id VARCHAR(64) NULL');
+        await ensureWdCol('payment_transaction_id', 'ADD COLUMN payment_transaction_id VARCHAR(255) NULL');
+        await ensureWdCol('payment_amount', 'ADD COLUMN payment_amount DECIMAL(15,2) NULL');
+        await ensureWdCol('payment_method', 'ADD COLUMN payment_method VARCHAR(20) NULL');
+        await ensureWdCol('payment_proof', 'ADD COLUMN payment_proof TEXT NULL');
+        await ensureWdCol('payment_at', 'ADD COLUMN payment_at DATETIME NULL');
+        await ensureWdCol('ledger_transaction_id', 'ADD COLUMN ledger_transaction_id INT NULL');
+        await ensureWdCol('processed_by', 'ADD COLUMN processed_by INT NULL');
+        await ensureWdCol('processed_at', 'ADD COLUMN processed_at DATETIME NULL');
+        await ensureWdCol('rejection_reason', 'ADD COLUMN rejection_reason TEXT NULL');
+        await ensureWdCol('updated_at', 'ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
+        try {
+            await db.query(
+                `CREATE UNIQUE INDEX IF NOT EXISTS withdraw_requests_request_id_unique ON withdraw_requests (request_id)`
+            );
+        } catch (e) { /* index likely exists */ }
+        try {
+            await db.query(
+                `CREATE UNIQUE INDEX IF NOT EXISTS withdraw_requests_ledger_transaction_id_unique ON withdraw_requests (ledger_transaction_id)`
+            );
+        } catch (e) { /* index likely exists */ }
+        await addFKIfNotExists('withdraw_requests', 'fk_wdw_processed', 'processed_by', 'users', 'id', 'SET NULL');
+        await db.query(
+            `UPDATE withdraw_requests
+             SET request_id = CONCAT('WD-', DATE_FORMAT(created_at, '%Y%m%d'), '-', LPAD(id, 5, '0'))
+             WHERE request_id IS NULL`
+        );
+
         // ════════════════════════════════════════════════════════════
         // 10. match_requests  — depends on users
         // ════════════════════════════════════════════════════════════

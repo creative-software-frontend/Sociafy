@@ -93,7 +93,21 @@ async function approveWithdraw(req, res) {
 
 async function rejectWithdraw(req, res) {
     try {
-        const result = await walletService.rejectWithdrawRequest(req.user.id, req.params.id, req.body?.admin_note || "");
+        const result = await walletService.rejectWithdrawRequest(
+            req.user.id,
+            req.params.id,
+            req.body?.rejection_reason || "",
+            req.body?.admin_note || ""
+        );
+        return res.json(result);
+    } catch (error) {
+        return handleError(res, error);
+    }
+}
+
+async function completeWithdraw(req, res) {
+    try {
+        const result = await walletService.completeWithdrawRequest(req.user.id, req.params.id, req.body || {});
         return res.json(result);
     } catch (error) {
         return handleError(res, error);
@@ -112,4 +126,5 @@ module.exports = {
     getAdminWithdrawRequests,
     approveWithdraw,
     rejectWithdraw,
+    completeWithdraw,
 };

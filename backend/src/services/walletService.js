@@ -1,7 +1,14 @@
 const db = require("../config/db");
 
 const ALLOWED_PAYMENT_METHODS = ["bKash", "Nagad"];
-const ALLOWED_STATUSES = ["Pending", "Approved", "Rejected"];
+const ALLOWED_STATUSES = ["Pending", "Approved", "Rejected", "Completed"];
+
+// Columns returned to callers for a withdrawal request row.
+const WITHDRAW_SELECT = `id, request_id, user_id, amount, method, account_number, status,
+    admin_note, rejection_reason, approved_by, approved_at,
+    processed_by, processed_at,
+    payment_transaction_id, payment_amount, payment_method, payment_proof, payment_at,
+    ledger_transaction_id, updated_at, created_at`;
 
 async function createProviderWithdrawRequest(userId, payload = {}) {
     return createWithdrawRequest(userId, payload);
@@ -209,10 +216,18 @@ async function createWithdrawRequest(userId, payload = {}) {
             [userId, Number(amount).toFixed(2), method, accountNumber]
         );
 
+        // Unique, human-readable reference: WD-YYYYMMDD-NNNNN
+        const yyyymmdd = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+        const reference = `WD-${yyyymmdd}-${String(result.insertId).padStart(5, "0")}`;
+        await connection.query(
+            `UPDATE withdraw_requests SET request_id = ? WHERE id = ?`,
+            [reference, result.insertId]
+        );
+
         await connection.commit();
 
         const [rows] = await db.query(
-            `SELECT id, user_id, amount, method, account_number, status, admin_note, approved_by, approved_at, created_at
+            `SELECT ${WITHDRAW_SELECT}
              FROM withdraw_requests WHERE id = ? LIMIT 1`,
             [result.insertId]
         );
@@ -228,7 +243,7 @@ async function createWithdrawRequest(userId, payload = {}) {
 
 async function getUserWithdrawHistory(userId) {
     const [rows] = await db.query(
-        `SELECT id, user_id, amount, method, account_number, status, admin_note, approved_by, approved_at, created_at
+        `SELECT ${WITHDRAW_SELECT}
          FROM withdraw_requests WHERE user_id = ? ORDER BY created_at DESC`,
         [userId]
     );
@@ -453,10 +468,17 @@ async function rejectDepositRequest(adminId, depositId, adminNote = "") {
 
 async function getAdminWithdrawRequests() {
     const [rows] = await db.query(
-        `SELECT wr.id, wr.user_id, wr.amount, wr.method, wr.account_number, wr.status, wr.admin_note, wr.approved_by, wr.approved_at, wr.created_at,
-                u.name AS user_name, u.email AS user_email
+        `SELECT wr.id, wr.user_id, wr.request_id, wr.amount, wr.method, wr.account_number, wr.status,
+                wr.admin_note, wr.rejection_reason, wr.approved_by, wr.approved_at,
+                wr.processed_by, wr.processed_at,
+                wr.payment_transaction_id, wr.payment_amount, wr.payment_method, wr.payment_proof, wr.payment_at,
+                wr.ledger_transaction_id, wr.updated_at, wr.created_at,
+                u.name AS user_name, u.email AS user_email, u.role AS user_role, u.balance AS user_balance,
+                ap.name AS approved_by_name, pr.name AS processed_by_name
          FROM withdraw_requests wr
          LEFT JOIN users u ON u.id = wr.user_id
+         LEFT JOIN users ap ON ap.id = wr.approved_by
+         LEFT JOIN users pr ON pr.id = wr.processed_by
          ORDER BY wr.created_at DESC`
     );
     return rows;
@@ -487,17 +509,13 @@ async function approveWithdrawRequest(adminId, withdrawId, adminNote = "") {
         }
 
         // Money is already reserved/deducted at Pending creation time.
-        // Approval should only finalize request and create transaction record.
-
-        await connection.query(
-            `INSERT INTO transactions (user_id, type, amount, status, description)
-             VALUES (?, 'withdraw', ?, 'completed', 'Withdrawal approved manually')`,
-            [withdraw.user_id, Number(withdraw.amount)]
-        );
+        // Approval marks the request as PROCESSING — it does NOT mean the money
+        // has been paid yet. The ledger 'withdraw' entry + payment info are
+        // recorded only when the admin completes the withdrawal.
 
         await connection.query(
             `UPDATE withdraw_requests
-             SET status = 'Approved', admin_note = ?, approved_by = ?, approved_at = NOW()
+             SET status = 'Approved', admin_note = ?, approved_by = ?, approved_at = NOW(), updated_at = NOW()
              WHERE id = ?`,
             [adminNote.trim(), adminId, withdrawId]
         );
@@ -505,7 +523,112 @@ async function approveWithdrawRequest(adminId, withdrawId, adminNote = "") {
         await connection.commit();
 
         const [updatedRows] = await db.query(
-            `SELECT id, user_id, amount, method, account_number, status, admin_note, approved_by, approved_at, created_at
+            `SELECT ${WITHDRAW_SELECT}
+             FROM withdraw_requests WHERE id = ? LIMIT 1`,
+            [withdrawId]
+        );
+
+        return updatedRows[0];
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
+}
+
+/**
+ * completeWithdrawRequest
+ * ──────────────────────
+ * Admin has actually paid the requester externally (bKash/Nagad) and records the
+ * real payment information, transitioning Approved → Completed.
+ *
+ * - Only 'Approved' requests may be completed (a request can never be paid
+ *   twice; Pending or Completed requests are rejected).
+ * - Records payment transaction ID, actual amount paid, method, proof + admin note.
+ * - Records the processing admin + timestamp.
+ * - Creates the single ledger 'withdraw' entry (money is already reserved; this
+ *   row is informational/audit and never deducts twice).
+ */
+async function completeWithdrawRequest(adminId, withdrawId, payload = {}) {
+    const paymentTransactionId = String(payload.payment_transaction_id || "").trim();
+    const paymentAmount = Number(payload.payment_amount);
+    const paymentMethod = String(payload.payment_method || "").trim() || null;
+    const paymentProof = String(payload.payment_proof || "").trim() || null;
+    const adminNote = String(payload.admin_note || "").trim();
+
+    if (!paymentTransactionId) {
+        const error = new Error("Payment transaction ID is required");
+        error.statusCode = 400;
+        throw error;
+    }
+    if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+        const error = new Error("A valid amount paid is required");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const connection = await db.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        const [withdrawRows] = await connection.query(
+            `SELECT id, user_id, amount, status FROM withdraw_requests WHERE id = ? FOR UPDATE`,
+            [withdrawId]
+        );
+
+        if (!withdrawRows.length) {
+            const error = new Error("Withdrawal request not found");
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const withdraw = withdrawRows[0];
+        if (withdraw.status !== "Approved") {
+            const error = new Error("Withdrawal must be approved before it can be completed");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        await connection.query(
+            `UPDATE withdraw_requests
+             SET status = 'Completed',
+                 payment_transaction_id = ?, payment_amount = ?, payment_method = ?, payment_proof = ?,
+                 payment_at = NOW(),
+                 processed_by = ?, processed_at = NOW(),
+                 admin_note = COALESCE(?, admin_note),
+                 updated_at = NOW()
+             WHERE id = ?`,
+            [
+                paymentTransactionId,
+                paymentAmount.toFixed(2),
+                paymentMethod,
+                paymentProof,
+                adminId,
+                adminNote || null,
+                withdrawId,
+            ]
+        );
+
+        const description = `Withdrawal ${paymentMethod ? `via ${paymentMethod} ` : ""}ref ${paymentTransactionId}`.trim();
+        const [ledgerResult] = await connection.query(
+            `INSERT INTO transactions (user_id, type, amount, status, description)
+             VALUES (?, 'withdraw', ?, 'completed', ?)`,
+            [withdraw.user_id, Number(withdraw.amount), description]
+        );
+
+        // Link the withdrawal request to its single ledger transaction so an
+        // admin can trace Withdrawal Request → Ledger Transaction → Payment TXID.
+        await connection.query(
+            `UPDATE withdraw_requests SET ledger_transaction_id = ? WHERE id = ?`,
+            [ledgerResult.insertId, withdrawId]
+        );
+
+        await connection.commit();
+
+        const [updatedRows] = await db.query(
+            `SELECT ${WITHDRAW_SELECT}
              FROM withdraw_requests WHERE id = ? LIMIT 1`,
             [withdrawId]
         );
@@ -522,9 +645,18 @@ async function approveWithdrawRequest(adminId, withdrawId, adminNote = "") {
 /**
  * rejectWithdrawRequest
  * ──────────────────────
- * Refund the reserved funds back to the user's wallet/earnings and mark request as Rejected.
+ * Refund the reserved funds back to the user's wallet and mark the request as
+ * Rejected. Requires a rejection reason (audit requirement) and only applies
+ * to pending requests — rejected/completed requests can never be rejected.
  */
-async function rejectWithdrawRequest(adminId, withdrawId, adminNote = "") {
+async function rejectWithdrawRequest(adminId, withdrawId, rejectionReason, adminNote = "") {
+    const reason = String(rejectionReason || "").trim();
+    if (!reason) {
+        const error = new Error("A rejection reason is required");
+        error.statusCode = 400;
+        throw error;
+    }
+
     const connection = await db.getConnection();
 
     try {
@@ -543,7 +675,7 @@ async function rejectWithdrawRequest(adminId, withdrawId, adminNote = "") {
 
         const withdraw = withdrawRows[0];
         if (withdraw.status !== "Pending") {
-            const error = new Error("Withdrawal request is no longer pending");
+            const error = new Error("Withdrawal request is no longer pending — only pending requests can be rejected");
             error.statusCode = 400;
             throw error;
         }
@@ -572,15 +704,15 @@ async function rejectWithdrawRequest(adminId, withdrawId, adminNote = "") {
 
         await connection.query(
             `UPDATE withdraw_requests
-             SET status = 'Rejected', admin_note = ?, approved_by = ?, approved_at = NOW()
+             SET status = 'Rejected', rejection_reason = ?, admin_note = ?, approved_by = ?, approved_at = NOW(), updated_at = NOW()
              WHERE id = ?`,
-            [adminNote.trim(), adminId, withdrawId]
+            [reason, adminNote.trim(), adminId, withdrawId]
         );
 
         await connection.commit();
 
         const [rows] = await db.query(
-            `SELECT id, user_id, amount, method, account_number, status, admin_note, approved_by, approved_at, created_at
+            `SELECT ${WITHDRAW_SELECT}
              FROM withdraw_requests WHERE id = ? LIMIT 1`,
             [withdrawId]
         );
@@ -606,5 +738,6 @@ module.exports = {
     rejectDepositRequest,
     getAdminWithdrawRequests,
     approveWithdrawRequest,
+    completeWithdrawRequest,
     rejectWithdrawRequest,
 };

@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { adminApi } from '../../../utils/api';
-import type { ReportsData } from '../../../utils/api';
+import type { ReportsData, WithdrawRequestItem, DepositRequestItem } from '../../../utils/api';
 import { motion } from 'framer-motion';
 import { resolveMediaUrl } from '../../../config/apiConfig';
 import { PointsDisplay } from '../../../components/PointsDisplay';
+import { WithdrawReviewModal } from './WithdrawReviewModal';
 
 
 
@@ -134,19 +135,7 @@ const icons = {
     ),
 };
 
-type PendingWalletRequest = {
-    id: number;
-    user_id: number;
-    amount: number;
-    method: string;
-    trx_id?: string;
-    screenshot_url?: string;
-    account_number?: string;
-    status: string;
-    created_at: string;
-    user_name?: string;
-    user_email?: string;
-};
+type AdminDepositReq = DepositRequestItem & { user_name?: string; user_email?: string };
 
 export default function AdminReportsPage() {
     const [data, setData] = useState<ReportsData | null>(null);
@@ -161,9 +150,24 @@ export default function AdminReportsPage() {
     const [ledgerFilter, setLedgerFilter] = useState<'all' | 'deposit' | 'withdraw' | 'earning' | 'event_payment' | 'event_income' | 'membership_purchase' | 'audio_call'>('all');
     const [search, setSearch] = useState('');
     const [visibleCount, setVisibleCount] = useState(6);
-    const [pendingRequests, setPendingRequests] = useState<{ deposits: PendingWalletRequest[]; withdrawals: PendingWalletRequest[] }>({ deposits: [], withdrawals: [] });
+    const [pendingRequests, setPendingRequests] = useState<{ deposits: AdminDepositReq[]; withdrawals: WithdrawRequestItem[] }>({ deposits: [], withdrawals: [] });
     const [pendingLoading, setPendingLoading] = useState(false);
     const [pendingMessage, setPendingMessage] = useState('');
+    const [selectedWithdraw, setSelectedWithdraw] = useState<WithdrawRequestItem | null>(null);
+
+    const loadReports = async () => {
+        try {
+            const res = await adminApi.getReports();
+            if ('error' in res && res.error) {
+                throw new Error(res.error);
+            }
+            setData(res.data ?? null);
+        } catch (e: any) {
+            setError(e?.message || 'Failed to load reports');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const loadPendingRequests = async () => {
         setPendingLoading(true);
@@ -182,19 +186,7 @@ export default function AdminReportsPage() {
     };
 
     useEffect(() => {
-        (async () => {
-            try {
-                const res = await adminApi.getReports();
-                if ('error' in res && res.error) {
-                    throw new Error(res.error);
-                }
-                setData(res.data ?? null);
-            } catch (e: any) {
-                setError(e?.message || 'Failed to load reports');
-            } finally {
-                setLoading(false);
-            }
-        })();
+        loadReports();
         loadPendingRequests();
     }, []);
 
@@ -214,18 +206,19 @@ export default function AdminReportsPage() {
 
     const visibleLedger = filteredLedger.slice(0, visibleCount);
 
-    const handlePendingAction = async (type: 'deposit' | 'withdraw', id: number, action: 'approve' | 'reject') => {
+    const handlePendingAction = async (id: number, action: 'approve' | 'reject') => {
         setPendingMessage('');
         try {
             const res = action === 'approve'
-                ? (type === 'deposit' ? await adminApi.approveDepositRequest(id) : await adminApi.approveWithdrawRequest(id))
-                : (type === 'deposit' ? await adminApi.rejectDepositRequest(id) : await adminApi.rejectWithdrawRequest(id));
+                ? await adminApi.approveDepositRequest(id)
+                : await adminApi.rejectDepositRequest(id);
 
             if (res.error) {
                 throw new Error(res.error);
             }
-            setPendingMessage(`${type === 'deposit' ? 'Deposit' : 'Withdrawal'} ${action === 'approve' ? 'approved' : 'rejected'}.`);
+            setPendingMessage(`Deposit ${action === 'approve' ? 'approved' : 'rejected'}.`);
             await loadPendingRequests();
+            await loadReports();
         } catch (e: any) {
             setPendingMessage(e?.message || 'Action failed');
         }
@@ -372,23 +365,31 @@ export default function AdminReportsPage() {
                                     )}
 
                             <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                                <button className="btn btn-sm" style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--green-status)', border: '1px solid rgba(16,185,129,0.3)' }} onClick={() => handlePendingAction('deposit', req.id, 'approve')}>Approve</button>
-                                <button className="btn btn-sm" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--red-status)', border: '1px solid rgba(239,68,68,0.3)' }} onClick={() => handlePendingAction('deposit', req.id, 'reject')}>Reject</button>
+                                <button className="btn btn-sm" style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--green-status)', border: '1px solid rgba(16,185,129,0.3)' }} onClick={() => handlePendingAction(req.id, 'approve')}>Approve</button>
+                                <button className="btn btn-sm" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--red-status)', border: '1px solid rgba(239,68,68,0.3)' }} onClick={() => handlePendingAction(req.id, 'reject')}>Reject</button>
                             </div>
                         </div>
                     ))}
                     
                     {pendingRequests.withdrawals.map((req) => (
                         <div key={`withdraw-${req.id}`} style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', background: 'var(--bg-input)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
-                                <strong style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>Withdraw • {req.user_name || 'User'}</strong>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
+                                <strong style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>
+                                    {req.request_id || `#${req.id}`} • {req.user_name || `User #${req.user_id}`}
+                                </strong>
                                 <span style={{ color: 'var(--gold-mid)', fontWeight: 600 }}><PointsDisplay amount={req.amount} decimals={2} /></span>
                             </div>
-                            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: 'var(--space-1)' }}>{req.method} • {req.account_number}</div>
-                            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                                <button className="btn btn-sm" style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--green-status)', border: '1px solid rgba(16,185,129,0.3)' }} onClick={() => handlePendingAction('withdraw', req.id, 'approve')}>Approve</button>
-                                <button className="btn btn-sm" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--red-status)', border: '1px solid rgba(239,68,68,0.3)' }} onClick={() => handlePendingAction('withdraw', req.id, 'reject')}>Reject</button>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginBottom: 'var(--space-1)' }}>
+                                {[req.user_email, req.user_role ? (req.user_role === 'provider' ? 'Provider' : 'User') : null].filter(Boolean).join(' • ')}
                             </div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: 'var(--space-2)' }}>{req.method} • {req.account_number}</div>
+                            <button
+                                className="btn btn-sm"
+                                style={{ background: 'var(--blue-glow)', color: 'var(--blue-vivid)', border: '1px solid rgba(59,130,246,0.3)' }}
+                                onClick={() => setSelectedWithdraw(req)}
+                            >
+                                View Details
+                            </button>
                         </div>
                     ))}
                 </div>
@@ -780,6 +781,17 @@ export default function AdminReportsPage() {
         <style>{`
               @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
+
+        {selectedWithdraw && (
+            <WithdrawReviewModal
+                withdrawal={selectedWithdraw}
+                onClose={() => setSelectedWithdraw(null)}
+                onAction={() => {
+                    loadPendingRequests();
+                    loadReports();
+                }}
+            />
+        )}
     </motion.div>
     );
 }

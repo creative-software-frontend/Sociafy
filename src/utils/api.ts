@@ -229,6 +229,24 @@ export interface WithdrawRequestItem {
     approved_by?: number | null;
     approved_at?: string | null;
     created_at: string;
+    request_id?: string | null;
+    rejection_reason?: string | null;
+    processed_by?: number | null;
+    processed_at?: string | null;
+    payment_transaction_id?: string | null;
+    payment_amount?: number | null;
+    payment_method?: string | null;
+    payment_proof?: string | null;
+    payment_at?: string | null;
+    ledger_transaction_id?: number | null;
+    updated_at?: string | null;
+    // Joined user information (admin endpoints)
+    user_name?: string;
+    user_email?: string;
+    user_role?: string;
+    user_balance?: number;
+    approved_by_name?: string | null;
+    processed_by_name?: string | null;
 }
 
 // ── User endpoints ────────────────────────────────────────────────────────────
@@ -1035,10 +1053,22 @@ export const adminApi = {
             body: JSON.stringify({ admin_note: adminNote }),
         }),
 
-    rejectWithdrawRequest: (id: number, adminNote = '') =>
+    rejectWithdrawRequest: (id: number, rejectionReason: string, adminNote = '') =>
         request<WithdrawRequestItem>(`/admin-wallet/withdraw/${id}/reject`, {
             method: 'PATCH',
-            body: JSON.stringify({ admin_note: adminNote }),
+            body: JSON.stringify({ rejection_reason: rejectionReason, admin_note: adminNote }),
+        }),
+
+    completeWithdrawRequest: (id: number, payload: {
+        payment_transaction_id: string;
+        payment_amount: number;
+        payment_method: string;
+        payment_proof?: string;
+        admin_note?: string;
+    }) =>
+        request<WithdrawRequestItem>(`/admin-wallet/withdraw/${id}/complete`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload),
         }),
 
     // ── Admin Wallet (platform revenue) ──
