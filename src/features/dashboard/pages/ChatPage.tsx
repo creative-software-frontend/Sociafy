@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
-import { SOCKET_URL } from '../../../config/apiConfig';
+import { SOCKET_URL, resolveMediaUrl } from '../../../config/apiConfig';
 import { useAuth } from '../../../context/AuthContext';
 import { useMembership } from '../../../context/MembershipContext';
 import { serviceApi, providerApi, userApi } from '../../../utils/api';
@@ -644,7 +644,7 @@ export function ChatPage() {
                                                                 minWidth: 120,
                                                                 textAlign: 'center' as const,
                                                             }}>
-                                                                <GiftVisual gift={{ name: gift.giftName, icon: gift.icon, image: gift.image ?? null }} size={40} fontSize="2rem" />
+                                                                <GiftVisual gift={{ name: gift.giftName, icon: gift.icon, image: gift.image ? resolveMediaUrl(gift.image) : null }} size={40} fontSize="2rem" />
                                                                 <p style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700, margin: '0 0 2px' }}>
                                                                     {gift.giftName} Gift
                                                                 </p>
