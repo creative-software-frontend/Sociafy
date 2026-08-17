@@ -61,7 +61,7 @@ export function GiftPickerModal({ onClose, onSend }: Props) {
                         boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
                         animation: 'slideUp .25s ease',
                     }}>
-                        <div style={{ fontSize: '3rem', marginBottom: 12 }}>{confirmGift.icon || '🎁'}</div>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><GiftVisual gift={confirmGift} size={64} fontSize="3rem" /></div>
                         <h3 style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 700, margin: '0 0 6px' }}>
                             Send {confirmGift.name}?
                         </h3>
