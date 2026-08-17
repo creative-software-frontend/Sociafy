@@ -33,8 +33,6 @@ const MAX_SIZE = 5 * 1024 * 1024;
 
 interface FormState {
     name: string;
-    icon: string;
-    image: string;
     price: string;
     provider_percentage: string;
     admin_percentage: string;
@@ -42,8 +40,6 @@ interface FormState {
 
 const emptyForm: FormState = {
     name: '',
-    icon: '',
-    image: '',
     price: '',
     provider_percentage: '70',
     admin_percentage: '30',
@@ -100,8 +96,6 @@ export function AdminGiftPage() {
         setEditingId(g.id);
         setForm({
             name: g.name,
-            icon: g.icon || '',
-            image: g.image || '',
             price: String(g.price),
             provider_percentage: String(g.provider_percentage),
             admin_percentage: String(g.admin_percentage),
@@ -123,8 +117,6 @@ export function AdminGiftPage() {
 
         const payload = {
             name: form.name.trim(),
-            icon: form.icon.trim() || null,
-            image: form.image.trim() || null,
             price,
             provider_percentage: providerPct,
             admin_percentage: adminPct,
@@ -419,19 +411,9 @@ export function AdminGiftPage() {
                                 <label style={labelStyle}>Name</label>
                                 <input style={inputStyle} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Rose" />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
-                                <div>
-                                    <label style={labelStyle}>Icon (emoji fallback)</label>
-                                    <input style={inputStyle} value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="🌹" />
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Price</label>
-                                    <input style={inputStyle} type="number" min="0.01" step="0.01" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} placeholder="10" />
-                                </div>
-                            </div>
                             <div>
-                                <label style={labelStyle}>Legacy Image URL (optional fallback)</label>
-                                <input style={inputStyle} value={form.image} onChange={e => setForm(f => ({ ...f, image: e.target.value }))} placeholder="https://… (legacy gifts)" />
+                                <label style={labelStyle}>Price</label>
+                                <input style={inputStyle} type="number" min="0.01" step="0.01" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} placeholder="10" />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
                                 <div>
