@@ -9,9 +9,16 @@
  * instead of silently falling back to local storage.
  */
 
-const { getProvider } = require("./storage");
+const { getProvider, getProviderName } = require("./storage");
 
 const provider = getProvider();
+const providerName = getProviderName();
+if (providerName === "local" && process.env.NODE_ENV === "production") {
+    console.warn(
+        "[storage] WARNING: using LOCAL filesystem storage in production. Uploaded files will be lost on redeploy. " +
+        "Set STORAGE_PROVIDER=supabase (or provide the SUPABASE_S3_* variables) for persistent storage."
+    );
+}
 if (provider.ensureReady) provider.ensureReady();
 
 module.exports = {

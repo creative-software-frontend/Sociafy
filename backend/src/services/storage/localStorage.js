@@ -9,7 +9,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
-const UPLOADS_ROOT = path.join(process.cwd(), "uploads");
+const UPLOADS_ROOT = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), "uploads"));
 
 function ensureDir(dir) {
     fs.mkdirSync(dir, { recursive: true });
@@ -23,8 +23,15 @@ function makeKey(folder, ext) {
     return `${folder}/${crypto.randomBytes(8).toString("hex")}${ext}`;
 }
 
+// Best-effort: on free hosting the working directory may be read-only. Do not
+// crash the whole server at boot — individual uploads will surface a clear
+// error instead, and production should use Supabase storage anyway.
 function ensureReady() {
-    ensureDir(UPLOADS_ROOT);
+    try {
+        ensureDir(UPLOADS_ROOT);
+    } catch (err) {
+        console.warn(`[storage] local uploads directory unavailable (${err.message}) — uploads will fail. Use STORAGE_PROVIDER=supabase in production.`);
+    }
 }
 
 async function uploadFile({ folder = "avatars", filename, buffer, mimetype }) {
