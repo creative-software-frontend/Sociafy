@@ -219,6 +219,7 @@ export function AdminAccountDeletionSection() {
                         fontFamily: "'Inter', sans-serif",
                         cursor: 'pointer',
                         lineHeight: 1.5,
+                        position: 'relative',
                     }}
                 >
                     <input
@@ -226,10 +227,51 @@ export function AdminAccountDeletionSection() {
                         type="checkbox"
                         checked={confirmed}
                         onChange={(e) => setConfirmed(e.target.checked)}
-                        style={{ marginTop: '3px', accentColor: 'var(--red-status)' }}
+                        style={{
+                            position: 'absolute',
+                            opacity: 0,
+                            width: 1,
+                            height: 1,
+                            overflow: 'hidden',
+                            pointerEvents: 'none',
+                        }}
                     />
-                    I understand that deleting my account is permanent, signs me out immediately, and
-                    cannot be undone.
+                    <span
+                        aria-hidden="true"
+                        style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: 5,
+                            flexShrink: 0,
+                            marginTop: 2,
+                            border: `1.5px solid ${confirmed ? 'var(--red-status)' : 'var(--border-default)'}`,
+                            background: confirmed ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.15s',
+                            boxSizing: 'border-box',
+                        }}
+                    >
+                        {confirmed && (
+                            <svg
+                                width="11"
+                                height="11"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="var(--red-status)"
+                                strokeWidth="3.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                        )}
+                    </span>
+                    <span>
+                        I understand that deleting my account is permanent, signs me out immediately, and
+                        cannot be undone.
+                    </span>
                 </label>
 
                 {error && (
