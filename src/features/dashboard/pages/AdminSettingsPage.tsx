@@ -3,6 +3,7 @@ import { TopNav } from './TopNav';
 import { adminApi } from '../../../utils/api';
 import type { Package, Feature, CreatePackagePayload } from '../../../utils/api';
 import { PointsDisplay } from '../../../components/PointsDisplay';
+import { useConfirmDialog } from '../../../components/ConfirmDialog';
 
 type FeatureWithFlags = Feature & {
     is_coming_soon?: number | boolean;
@@ -250,6 +251,7 @@ function UserFeatureCheckboxes({
 // ── PackagesSection ────────────────────────────────────────────────────────────
 
 function PackagesSection() {
+    const confirmDialog = useConfirmDialog();
 
     const [packages, setPackages] = useState<Package[]>([]);
     const [allFeatures, setAllFeatures] = useState<Feature[]>([]);
@@ -380,7 +382,13 @@ function PackagesSection() {
     };
 
     const handleDelete = async (id: number, name: string) => {
-        if (!window.confirm(`Delete package "${name}"?`)) return;
+        const ok = await confirmDialog({
+            title: `Delete package "${name}"?`,
+            message: 'This action cannot be undone.',
+            confirmLabel: 'Delete',
+            variant: 'danger',
+        });
+        if (!ok) return;
         const res = await adminApi.deletePackage(id);
         if (res.error) setError(res.error);
         else { setSuccess('Package deleted.'); fetchAll(); }

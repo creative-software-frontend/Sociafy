@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { TopNav } from './TopNav';
 import { adminApi } from '../../../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '../../../components/Toast';
+import { useConfirmDialog } from '../../../components/ConfirmDialog';
 
 interface UserInfo {
     id: number;
@@ -31,6 +33,8 @@ const containerAnim = {
 };
 
 export function AdminUsersPage() {
+    const toast = useToast();
+    const confirmDialog = useConfirmDialog();
     const [summary, setSummary] = useState<Summary | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -66,19 +70,26 @@ export function AdminUsersPage() {
     }, []);
 
     const handleToggleActive = async (id: number, currentStatus: number) => {
-        const action = currentStatus === 1 ? 'block' : 'unblock';
-        if (!window.confirm(`Are you sure you want to ${action} this account?`)) return;
+        const activating = currentStatus !== 1;
+        const ok = await confirmDialog({
+            title: activating ? 'Activate Account?' : 'Block Account?',
+            message: `Are you sure you want to ${activating ? 'unblock' : 'block'} this account?`,
+            confirmLabel: activating ? 'Activate' : 'Block',
+            variant: activating ? 'primary' : 'danger',
+        });
+        if (!ok) return;
 
         try {
             const res = await adminApi.toggleUserActive(id);
             if (res.error) {
-                alert(res.error);
+                toast.error(res.error);
             } else {
                 // Refresh summary from the server to get precise updated counts and state
                 await fetchSummary();
+                toast.success(activating ? 'Account activated.' : 'Account blocked.');
             }
         } catch (err: any) {
-            alert(err.message || 'Failed to update account status');
+            toast.error(err.message || 'Failed to update account status');
         }
     };
 

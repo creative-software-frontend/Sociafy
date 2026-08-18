@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { eventApi } from '../../../../../../utils/api';
 import type { Event } from '../types/event';
+import { useToast } from '../../../../../../components/Toast';
 
 export function useEvents(role: string) {
+    const toast = useToast();
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -60,13 +62,13 @@ export function useEvents(role: string) {
         setActionLoading(eventId);
         const res = await eventApi.leaveEvent(eventId);
         if (res.error) {
-            alert(res.error);
+            toast.error(res.error);
         } else {
             // refresh events
             await fetchEvents();
         }
         setActionLoading(null);
-    }, [fetchEvents]);
+    }, [fetchEvents, toast]);
 
     const deleteEvent = useCallback(async (eventId: number) => {
         setActionLoading(eventId);

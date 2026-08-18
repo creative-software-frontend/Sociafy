@@ -4,6 +4,7 @@ import { TopNav } from './TopNav';
 import { adminGiftApi } from '../../gift/services/giftApi';
 import type { Gift, GiftAsset } from '../../gift/types/gift';
 import { useToast } from '../../../components/Toast';
+import { useConfirmDialog } from '../../../components/ConfirmDialog';
 import { PointsDisplay } from '../../../components/PointsDisplay';
 
 const fadeUp = {
@@ -47,6 +48,7 @@ const emptyForm: FormState = {
 
 export function AdminGiftPage() {
     const toast = useToast();
+    const confirmDialog = useConfirmDialog();
     const [gifts, setGifts] = useState<Gift[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -156,7 +158,13 @@ export function AdminGiftPage() {
     };
 
     const handleDelete = async (g: Gift) => {
-        if (!window.confirm(`Delete "${g.name}" gift?`)) return;
+        const ok = await confirmDialog({
+            title: `Delete "${g.name}"?`,
+            message: 'This action cannot be undone.',
+            confirmLabel: 'Delete',
+            variant: 'danger',
+        });
+        if (!ok) return;
         const res = await adminGiftApi.deleteGift(g.id);
         if (!res.error) {
             toast.success('Gift deleted.');
@@ -215,7 +223,13 @@ export function AdminGiftPage() {
     };
 
     const handleDeleteAsset = async (a: GiftAsset) => {
-        if (!window.confirm(`Delete asset "${a.name}"?`)) return;
+        const ok = await confirmDialog({
+            title: `Delete asset "${a.name}"?`,
+            message: 'Gifts using this asset must be reassigned first. This action cannot be undone.',
+            confirmLabel: 'Delete',
+            variant: 'danger',
+        });
+        if (!ok) return;
         setAssetBusy({ action: 'delete', id: a.id });
         const res = await adminGiftApi.deleteAsset(a.id);
         setAssetBusy(null);
