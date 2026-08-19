@@ -133,9 +133,8 @@ export function ProfileDetailsModal({
     const age = computeAgeFromDob(view.date_of_birth);
 
     const goToChat = () => {
-        // Navigate into the chat tab; the conversation list will include the
-        // provider once the request is accepted (chat is unlocked).
-        window.location.href = `/${role}/dashboard/chat`;
+        // Navigate into the chat tab with this person's inbox already open.
+        window.location.href = `/${role}/dashboard/chat?partner=${profile.id}`;
     };
 
     return (

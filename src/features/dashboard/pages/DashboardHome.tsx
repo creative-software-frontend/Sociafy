@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { TopNav } from './TopNav';
 import { providerApi, userApi, type PartnerRequestStatus } from '../../../utils/api';
 import { useAuth } from '../../../context/AuthContext';
@@ -46,6 +46,7 @@ export interface RecentEvent {
 
 export function DashboardHome() {
     const { role } = useParams<{ role: string }>();
+    const navigate = useNavigate();
     const { user } = useAuth();
     const { membership } = useMembership();
     const toast = useToast();
@@ -442,6 +443,16 @@ export function DashboardHome() {
                                 return (
                                     <div
                                         key={u.id}
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => { setOnlineOpen(false); navigate(`/${role}/dashboard/chat?partner=${u.id}`); }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                setOnlineOpen(false);
+                                                navigate(`/${role}/dashboard/chat?partner=${u.id}`);
+                                            }
+                                        }}
                                         style={{
                                             display: 'flex',
                                             alignItems: 'center',
@@ -450,8 +461,12 @@ export function DashboardHome() {
                                             background: 'var(--bg-input)',
                                             border: '1px solid var(--border-subtle)',
                                             borderRadius: '10px',
+                                            cursor: 'pointer',
                                             transition: 'border-color 0.2s',
+                                            outline: 'none',
                                         }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--gold-mid)'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-subtle)'; }}
                                     >
                                         {/* Avatar with status indicator */}
                                         <div style={{ position: 'relative' }}>

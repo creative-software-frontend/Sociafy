@@ -152,6 +152,35 @@ function allowedAvatarTypes(file: File): boolean {
     return extAllowed || mimeAllowed;
 }
 
+// Site-wide gold accent buttons (Account Management card) — mirrors .btn-primary.
+const goldButtonStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "16px",
+    background: "linear-gradient(135deg, var(--gold-deep), var(--gold-mid), var(--gold-light))",
+    border: "1px solid transparent",
+    borderRadius: "10px",
+    color: "#0a0a0a",
+    fontSize: "0.85rem",
+    fontWeight: 700,
+    letterSpacing: "0.04em",
+    cursor: "pointer",
+    fontFamily: "'Inter', sans-serif",
+    transition: "filter 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease",
+    boxShadow: "0 4px 20px rgba(197, 168, 128, 0.2)",
+};
+
+const onGoldEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.filter = "brightness(1.1)";
+    e.currentTarget.style.transform = "translateY(-1px)";
+    e.currentTarget.style.boxShadow = "0 6px 28px rgba(197, 168, 128, 0.35)";
+};
+
+const onGoldLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.filter = "none";
+    e.currentTarget.style.transform = "none";
+    e.currentTarget.style.boxShadow = "0 4px 20px rgba(197, 168, 128, 0.2)";
+};
+
 export function ProfilePage() {
     const navigate = useNavigate();
     const { role } = useParams<{ role: string }>();
@@ -1223,44 +1252,42 @@ const uploadRes = await userApi.uploadImage(file, 'avatars');
 
                             {role !== "admin" && (
                                 <button
-                                    style={{
-                                        width: "100%",
-                                        padding: "16px",
-                                        background: "transparent",
-                                        border: "1px solid var(--border-subtle)",
-                                        borderRadius: "10px",
-                                        color: "var(--blue-vivid)",
-                                        fontSize: "0.85rem",
-                                        fontWeight: 600,
-                                        cursor: "pointer",
-                                        fontFamily: "'Inter', sans-serif",
-                                        transition: "all 0.2s ease",
-                                    }}
+                                    style={goldButtonStyle}
+                                    onClick={() => navigate("../membership")}
+                                    onMouseEnter={onGoldEnter}
+                                    onMouseLeave={onGoldLeave}
+                                >
+                                    Membership
+                                </button>
+                            )}
+
+                            {role !== "admin" && (
+                                <button
+                                    style={goldButtonStyle}
+                                    onClick={() => navigate("../services")}
+                                    onMouseEnter={onGoldEnter}
+                                    onMouseLeave={onGoldLeave}
+                                >
+                                    Services
+                                </button>
+                            )}
+
+                            {role !== "admin" && (
+                                <button
+                                    style={goldButtonStyle}
                                     onClick={() => navigate("../network")}
-                                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--blue-glow)")}
-                                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                                    onMouseEnter={onGoldEnter}
+                                    onMouseLeave={onGoldLeave}
                                 >
                                     Referral
                                 </button>
                             )}
 
                             <button
-                                style={{
-                                    width: "100%",
-                                    padding: "16px",
-                                    background: "transparent",
-                                    border: "1px solid var(--border-subtle)",
-                                    borderRadius: "10px",
-                                    color: "var(--blue-vivid)",
-                                    fontSize: "0.85rem",
-                                    fontWeight: 600,
-                                    cursor: "pointer",
-                                    fontFamily: "'Inter', sans-serif",
-                                    transition: "all 0.2s ease",
-                                }}
+                                style={goldButtonStyle}
                                 onClick={() => navigate("../change-password")}
-                                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--blue-glow)")}
-                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                                onMouseEnter={onGoldEnter}
+                                onMouseLeave={onGoldLeave}
                             >
                                 Change Password
                             </button>

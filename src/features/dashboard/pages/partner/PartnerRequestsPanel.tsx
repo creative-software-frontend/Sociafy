@@ -270,7 +270,7 @@ function RequesterDetailsModal({
     const age = computeAgeFromDob(view?.date_of_birth ?? null);
 
     const goToChat = () => {
-        window.location.href = `/provider/dashboard/chat`;
+        window.location.href = `/provider/dashboard/chat?partner=${userId}`;
     };
 
     return (

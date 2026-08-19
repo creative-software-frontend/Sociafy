@@ -117,11 +117,9 @@ type NavItem = {
 
 const USER_NAV: NavItem[] = [
     { to: '', end: true, label: 'HOME', icon: ICONS.home },
-    { to: '/services', end: false, label: 'SERVICES', icon: ICONS.services },
-    { to: '/membership', end: false, label: 'MEMBERSHIP', icon: ICONS.membership },
+    { to: '/newsfeed', end: false, label: 'NEWSFEED', icon: ICONS.newsfeed },
     { to: '/wallet', end: false, label: 'WALLET', icon: ICONS.wallet },
     { to: '/chat', end: false, label: 'CHAT', icon: ICONS.chat },
-    { to: '/newsfeed', end: false, label: 'NEWSFEED', icon: ICONS.newsfeed },
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },
 ];
 
@@ -136,11 +134,9 @@ const ADMIN_NAV: NavItem[] = [
 
 const PROVIDER_NAV: NavItem[] = [
     { to: '', end: true, label: 'HOME', icon: ICONS.home },
-    { to: '/services', end: false, label: 'SERVICES', icon: ICONS.social },
-    { to: '/membership', end: false, label: 'MEMBERSHIP', icon: ICONS.membership },
+    { to: '/newsfeed', end: false, label: 'NEWSFEED', icon: ICONS.newsfeed },
     { to: '/wallet', end: false, label: 'WALLET', icon: ICONS.wallet },
     { to: '/chat', end: false, label: 'CHAT', icon: ICONS.chat },
-    { to: '/newsfeed', end: false, label: 'NEWSFEED', icon: ICONS.newsfeed },
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },
 ];
 

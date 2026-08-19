@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import { SOCKET_URL, resolveMediaUrl } from '../../../config/apiConfig';
 import { useAuth } from '../../../context/AuthContext';
@@ -93,6 +92,7 @@ export function ChatPage() {
     const { callState } = useCallContext();
     const navigate = useNavigate();
     const { role } = useParams<{ role: string }>();
+    const [searchParams, setSearchParams] = useSearchParams();
     const toast = useToast();
 
     const [contacts, setContacts] = useState<ActiveUser[]>([]);
@@ -142,6 +142,18 @@ export function ChatPage() {
             setCLoading(false);
         })();
     }, [isProvider]);
+
+    // Deep-link: open the inbox for a specific user/provider via ?partner=<id>.
+    useEffect(() => {
+        const p = searchParams.get('partner');
+        if (!p) return;
+        const id = Number(p);
+        if (!Number.isFinite(id)) return;
+        if (cLoading) return; // wait for the contact list so we can pick the real name
+        const found = contacts.find((c) => Number(c.id) === id) ?? null;
+        setSelected(found ?? { id, name: `User ${id}`, last_seen: null, is_online: 0 });
+        setSearchParams({}, { replace: true });
+    }, [searchParams, contacts, cLoading, setSearchParams]);
 
     useEffect(() => {
         const token = localStorage.getItem('bluedise_token');
@@ -482,7 +494,7 @@ export function ChatPage() {
                                             </svg>
                                             <span style={{ display: 'inline' }}>History</span>
                                         </button>
-                                        <div style={{ width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(99,102,241,0.5)', cursor: 'pointer' }}>
+                                        <div style={{ width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(99,102,241,0.5)', cursor: 'pointer' }}>
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
                                         </div>
                                     </div>
@@ -540,7 +552,7 @@ export function ChatPage() {
                                             )}
                                         </div>
                                         {unread > 0 ? (
-                                            <span style={{ minWidth: 20, height: 20, borderRadius: 999, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', fontSize: '0.65rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', flexShrink: 0, boxShadow: '0 0 10px rgba(99,102,241,0.6)' }}>{unread > 99 ? '99+' : unread}</span>
+                                            <span style={{ minWidth: 20, height: 20, borderRadius: 999, background: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', color: '#fff', fontSize: '0.65rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px', flexShrink: 0, boxShadow: '0 0 10px rgba(99,102,241,0.6)' }}>{unread > 99 ? '99+' : unread}</span>
                                         ) : c.request_status === 'pending' ? (
                                             <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.04em', color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', padding: '3px 8px', borderRadius: 999, flexShrink: 0 }}>PENDING</span>
                                         ) : null}
@@ -635,33 +647,33 @@ export function ChatPage() {
                                                     <div style={{ maxWidth: '72%', display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
                                                         {gift ? (
                                                             <div style={{
-                                                                background: isMe ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(255,255,255,0.08)',
+                                                                background: isMe ? 'linear-gradient(135deg, var(--gold-deep), var(--gold-mid))' : 'rgba(255,255,255,0.08)',
                                                                 backdropFilter: !isMe ? 'blur(10px)' : undefined,
                                                                 border: !isMe ? '1px solid rgba(255,255,255,0.07)' : 'none',
                                                                 borderRadius: isMe ? (clump ? '18px 4px 4px 18px' : '18px 4px 18px 18px') : (clump ? '4px 18px 18px 4px' : '4px 18px 18px 18px'),
                                                                 padding: '10px 14px',
-                                                                boxShadow: isMe ? '0 4px 16px rgba(99,102,241,0.35)' : '0 1px 6px rgba(0,0,0,0.3)',
+                                                                boxShadow: isMe ? '0 4px 16px rgba(197,168,128,0.4)' : '0 1px 6px rgba(0,0,0,0.3)',
                                                                 minWidth: 120,
                                                                 textAlign: 'center' as const,
                                                             }}>
                                                                 <GiftVisual gift={{ name: gift.giftName, icon: gift.icon, image: gift.image ? resolveMediaUrl(gift.image) : null }} size={40} fontSize="2rem" />
-                                                                <p style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700, margin: '0 0 2px' }}>
+                                                                <p style={{ color: isMe ? '#1a1a1a' : '#fff', fontSize: '0.85rem', fontWeight: 700, margin: '0 0 2px' }}>
                                                                     {gift.giftName} Gift
                                                                 </p>
-                                                                <p style={{ color: isMe ? 'rgba(255,255,255,0.8)' : 'rgba(139,92,246,0.9)', fontSize: '0.75rem', fontWeight: 700, margin: 0 }}>
+                                                                <p style={{ color: isMe ? 'rgba(26,26,26,0.75)' : 'rgba(139,92,246,0.9)', fontSize: '0.75rem', fontWeight: 700, margin: 0 }}>
                                                                     <PointsDisplay amount={gift.price} decimals={2} />
                                                                 </p>
                                                             </div>
                                                         ) : (
                                                             <div style={{
-                                                                background: isMe ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(255,255,255,0.08)',
+                                                                background: isMe ? 'linear-gradient(135deg, var(--gold-deep), var(--gold-mid))' : 'rgba(255,255,255,0.08)',
                                                                 backdropFilter: !isMe ? 'blur(10px)' : undefined,
                                                                 border: !isMe ? '1px solid rgba(255,255,255,0.07)' : 'none',
                                                                 borderRadius: isMe ? (clump ? '18px 4px 4px 18px' : '18px 4px 18px 18px') : (clump ? '4px 18px 18px 4px' : '4px 18px 18px 18px'),
                                                                 padding: '9px 14px',
-                                                                boxShadow: isMe ? '0 4px 16px rgba(99,102,241,0.35)' : '0 1px 6px rgba(0,0,0,0.3)',
+                                                                boxShadow: isMe ? '0 4px 16px rgba(197,168,128,0.4)' : '0 1px 6px rgba(0,0,0,0.3)',
                                                             }}>
-                                                                <p style={{ color: '#fff', fontSize: '0.9rem', lineHeight: 1.55, margin: 0, wordBreak: 'break-word' }}>{msg.message}</p>
+                                                                <p style={{ color: isMe ? '#1a1a1a' : '#fff', fontSize: '0.9rem', lineHeight: 1.55, margin: 0, wordBreak: 'break-word' }}>{msg.message}</p>
                                                             </div>
                                                         )}
                                                         <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.2)', marginTop: 3, paddingLeft: 4, paddingRight: 4 }}>
@@ -723,7 +735,7 @@ export function ChatPage() {
                                         />
                                         {/* send btn */}
                                         <button onClick={send} disabled={!input.trim() || sending}
-                                            style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', flexShrink: 0, cursor: !input.trim() || sending ? 'not-allowed' : 'pointer', background: input.trim() ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s', boxShadow: input.trim() ? '0 0 16px rgba(99,102,241,0.5)' : 'none' }}>
+                                            style={{ width: 38, height: 38, borderRadius: '50%', border: 'none', flexShrink: 0, cursor: !input.trim() || sending ? 'not-allowed' : 'pointer', background: input.trim() ? 'linear-gradient(135deg,#1d4ed8,#3b82f6)' : 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s', boxShadow: input.trim() ? '0 0 16px rgba(99,102,241,0.5)' : 'none' }}>
                                             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(45deg)', marginLeft: -1 }}><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
                                         </button>
                                     </div>

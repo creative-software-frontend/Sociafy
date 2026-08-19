@@ -346,11 +346,27 @@ export function AdminGiftPage() {
                     ) : assets.length === 0 ? (
                         <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: 0 }}>No assets yet. Click "+ Add Asset" to upload a GIF/image.</p>
                     ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 'var(--space-3)' }}>
+                        <div style={{
+                            display: 'flex',
+                            gap: 'var(--space-3)',
+                            overflowX: 'auto',
+                            paddingBottom: 8,
+                            WebkitOverflowScrolling: 'touch',
+                            scrollSnapType: 'x proximity',
+                            scrollbarWidth: 'thin',
+                        }}>
                             {assets.map(a => {
                                 const busy = assetBusy?.id === a.id;
                                 return (
-                                    <div key={a.id} style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--bg-input)' }}>
+                                    <div key={a.id} style={{
+                                        flex: '0 0 110px',
+                                        width: 110,
+                                        scrollSnapAlign: 'start',
+                                        border: '1px solid var(--border-subtle)',
+                                        borderRadius: 'var(--radius-md)',
+                                        overflow: 'hidden',
+                                        background: 'var(--bg-input)',
+                                    }}>
                                         <div style={{ width: '100%', height: 64, background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
                                             <div style={{ width: 52, height: 52 }}>{assetThumb(a)}</div>
                                         </div>
@@ -359,11 +375,11 @@ export function AdminGiftPage() {
                                             <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                                                 {a.asset_type}{a.is_active === 1 ? ' • active' : ' • off'}
                                             </div>
-                                            <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                                                <button className="btn btn-ghost btn-sm" disabled={busy || !!assetBusy} onClick={() => handleToggleAsset(a)} style={{ padding: '3px 7px', fontSize: '0.58rem' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                                                <button className="btn btn-ghost btn-sm" disabled={busy || !!assetBusy} onClick={() => handleToggleAsset(a)} style={{ padding: '3px 4px', fontSize: '0.56rem', width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                     {busy && assetBusy?.action === 'toggle' ? '…' : (a.is_active === 1 ? 'Deactivate' : 'Activate')}
                                                 </button>
-                                                <button className="btn btn-ghost btn-sm" disabled={busy || !!assetBusy} onClick={() => handleDeleteAsset(a)} style={{ padding: '3px 7px', fontSize: '0.58rem', color: 'var(--red-status)', borderColor: 'rgba(239,68,68,0.3)' }}>
+                                                <button className="btn btn-ghost btn-sm" disabled={busy || !!assetBusy} onClick={() => handleDeleteAsset(a)} style={{ padding: '3px 4px', fontSize: '0.56rem', width: '100%', color: 'var(--red-status)', borderColor: 'rgba(239,68,68,0.3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                     {busy && assetBusy?.action === 'delete' ? '…' : 'Delete'}
                                                 </button>
                                             </div>
@@ -388,7 +404,15 @@ export function AdminGiftPage() {
                                 {assets.length === 0 ? (
                                     <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: '0 0 8px' }}>No assets yet — add one in the Asset Library above.</p>
                                 ) : (
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(84px, 1fr))', gap: 8 }}>
+                                    <div style={{
+                                        display: 'flex',
+                                        gap: 8,
+                                        overflowX: 'auto',
+                                        paddingBottom: 8,
+                                        WebkitOverflowScrolling: 'touch',
+                                        scrollSnapType: 'x proximity',
+                                        scrollbarWidth: 'thin',
+                                    }}>
                                         {assets.map(a => {
                                             const selected = assetId === a.id;
                                             return (
@@ -397,10 +421,14 @@ export function AdminGiftPage() {
                                                     type="button"
                                                     onClick={() => setAssetId(a.id)}
                                                     style={{
+                                                        flex: '0 0 84px',
+                                                        width: 84,
+                                                        scrollSnapAlign: 'start',
                                                         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer',
                                                         padding: '8px 6px', borderRadius: 'var(--radius-md)',
                                                         background: selected ? 'rgba(59,130,246,0.1)' : 'var(--bg-input)',
                                                         border: selected ? '2px solid var(--blue-vivid)' : '1px solid var(--border-subtle)',
+                                                        boxSizing: 'border-box',
                                                     }}
                                                 >
                                                     <div style={{ width: 44, height: 44 }}>{assetThumb(a)}</div>
