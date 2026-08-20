@@ -4,7 +4,7 @@ import { TopNav } from "./TopNav";
 import { userApi } from "../../../utils/api";
 import { useToast } from "../../../components/Toast";
 import { PointsDisplay, PointsIcon } from "../../../components/PointsDisplay";
-import { DepositMethodSelector } from "../../../components/DepositMethodSelector";
+import { PaymentMethodSelector } from "../../../components/PaymentMethodSelector";
 import type { DepositPaymentMethod } from "../../../utils/api";
 
 type Transaction = {
@@ -45,7 +45,7 @@ export function WalletPage() {
     const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
 
 
-    const [withdrawMethod, setWithdrawMethod] = useState<'bKash' | 'Nagad'>('bKash');
+    const [selectedWithdrawMethod, setSelectedWithdrawMethod] = useState<DepositPaymentMethod | null>(null);
     const [withdrawAccountNumber, setWithdrawAccountNumber] = useState("");
     const [modalStatus, setModalStatus] = useState<{ type: 'error' | 'success'; message: string }>({ type: 'error', message: '' });
     const [modalLoading, setModalLoading] = useState(false);
@@ -146,6 +146,11 @@ export function WalletPage() {
             return;
         }
 
+        if (!selectedWithdrawMethod) {
+            setModalStatus({ type: 'error', message: 'Please select a payment method.' });
+            return;
+        }
+
         const mobile = withdrawAccountNumber.trim();
 
         if (!mobile) {
@@ -173,14 +178,14 @@ export function WalletPage() {
             setModalLoading(true);
             const res = await userApi.withdraw({
                 amount: amt,
-                method: withdrawMethod,
+                method: selectedWithdrawMethod.method === 'bkash' ? 'bKash' : 'Nagad',
                 account_number: mobile,
             });
             if (res.error) {
                 setModalStatus({ type: 'error', message: res.error });
             } else {
                 setAmountInput("");
-                setWithdrawMethod('bKash');
+                setSelectedWithdrawMethod(null);
                 setWithdrawAccountNumber("");
                 setModalStatus({ type: 'success', message: '' });
                 toast.success('Waiting for admin approval.');
@@ -335,7 +340,7 @@ export function WalletPage() {
                                     sub: "Withdraw your balance",
                                     onClick: () => {
                                         setAmountInput("");
-                                        setWithdrawMethod('bKash');
+                                        setSelectedWithdrawMethod(null);
                                         setWithdrawAccountNumber("");
                                         setModalStatus({ type: 'error', message: '' });
                                         setShowWithdrawModal(true);
@@ -687,7 +692,7 @@ export function WalletPage() {
                             />
                         </div>
 
-                        <DepositMethodSelector onSelect={setSelectedDepositMethod} />
+                        <PaymentMethodSelector onSelect={setSelectedDepositMethod} />
 
                         <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                             Transaction ID
@@ -902,17 +907,7 @@ export function WalletPage() {
                             />
                         </div>
 
-                        <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                            Method
-                            <select
-                                value={withdrawMethod}
-                                onChange={(e) => setWithdrawMethod(e.target.value as 'bKash' | 'Nagad')}
-                                style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
-                            >
-                                <option value="bKash">bKash</option>
-                                <option value="Nagad">Nagad</option>
-                            </select>
-                        </label>
+                        <PaymentMethodSelector onSelect={setSelectedWithdrawMethod} showAccountInfo={false} />
 
                         <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                             Account Number

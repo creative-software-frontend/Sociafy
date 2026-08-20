@@ -32,7 +32,7 @@ export function AssetsPage() {
     const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
 
     // New state variables for withdrawal
-    const [withdrawMethod, setWithdrawMethod] = useState('bKash');
+    const [selectedWithdrawMethod, setSelectedWithdrawMethod] = useState<DepositPaymentMethod | null>(null);
     const [withdrawNumber, setWithdrawNumber] = useState('');
 
     const depositLabel = 'DEPOSIT';
@@ -130,11 +130,16 @@ export function AssetsPage() {
             return;
         }
 
+        if (!selectedWithdrawMethod) {
+            setModalError('Please select a payment method.');
+            return;
+        }
+
         try {
             setModalLoading(true);
             const res = await userApi.withdraw({
                 amount: amt,
-                method: withdrawMethod as 'bKash' | 'Nagad',
+                method: selectedWithdrawMethod.method === 'bkash' ? 'bKash' : 'Nagad',
                 account_number: withdrawNumber
             });
             if (res.error) {
@@ -257,7 +262,7 @@ export function AssetsPage() {
                                      sub: withdrawSub,
                                      onClick: () => {
                                          setAmountInput('');
-                                         setWithdrawMethod('bKash');
+                                         setSelectedWithdrawMethod(null);
                                          setWithdrawNumber('');
                                          setModalError('');
                                          setShowWithdrawModal(true);
