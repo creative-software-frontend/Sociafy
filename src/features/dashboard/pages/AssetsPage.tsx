@@ -4,7 +4,7 @@ import { TopNav } from './TopNav';
 import { userApi, type Transaction, type DepositPaymentMethod } from '../../../utils/api';
 import { useToast } from '../../../components/Toast';
 import { PointsDisplay, PointsIcon } from '../../../components/PointsDisplay';
-import { DepositMethodSelector } from '../../../components/DepositMethodSelector';
+import { PaymentMethodSelector } from '../../../components/PaymentMethodSelector';
 
 export function AssetsPage() {
     const { user } = useAuth();
@@ -555,7 +555,7 @@ export function AssetsPage() {
                             />
                         </div>
 
-                        <DepositMethodSelector onSelect={setSelectedDepositMethod} />
+                        <PaymentMethodSelector onSelect={setSelectedDepositMethod} />
 
                         <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                             Transaction ID
@@ -678,17 +678,7 @@ export function AssetsPage() {
                             />
                         </div>
 
-                        <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                            Method
-                            <select
-                                value={withdrawMethod}
-                                onChange={(e) => setWithdrawMethod(e.target.value)}
-                                style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
-                            >
-                                <option value="bKash">bKash</option>
-                                <option value="Nagad">Nagad</option>
-                            </select>
-                        </label>
+                        <PaymentMethodSelector onSelect={setSelectedWithdrawMethod} showAccountInfo={false} />
 
                         <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                             Account Number
