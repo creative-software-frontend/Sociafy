@@ -72,9 +72,9 @@ export function AdminUsersPage() {
     const handleToggleActive = async (id: number, currentStatus: number) => {
         const activating = currentStatus !== 1;
         const ok = await confirmDialog({
-            title: activating ? 'Activate Account?' : 'Block Account?',
-            message: `Are you sure you want to ${activating ? 'unblock' : 'block'} this account?`,
-            confirmLabel: activating ? 'Activate' : 'Block',
+            title: activating ? 'Activate Account?' : 'Ban Account?',
+            message: `Are you sure you want to ${activating ? 'unban' : 'ban'} this account?`,
+            confirmLabel: activating ? 'Activate' : 'Ban',
             variant: activating ? 'primary' : 'danger',
         });
         if (!ok) return;
@@ -86,7 +86,7 @@ export function AdminUsersPage() {
             } else {
                 // Refresh summary from the server to get precise updated counts and state
                 await fetchSummary();
-                toast.success(activating ? 'Account activated.' : 'Account blocked.');
+                toast.success(activating ? 'Account activated.' : 'Account banned.');
             }
         } catch (err: any) {
             toast.error(err.message || 'Failed to update account status');
@@ -403,10 +403,10 @@ export function AdminUsersPage() {
                                                     gap: '6px'
                                                 }}>
                                                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
-                                                    {person.is_active ? 'Active' : 'Blocked'}
+                                                    {person.is_active ? 'Active' : 'Banned'}
                                                 </div>
 
-                                                {/* Block / Unblock Action Button */}
+                                                {/* Ban / Unban Action Button */}
                                                 <button
                                                     className="btn btn-sm"
                                                     onClick={() => handleToggleActive(person.id, person.is_active)}
@@ -423,7 +423,7 @@ export function AdminUsersPage() {
                                                         e.currentTarget.style.background = person.is_active ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)';
                                                     }}
                                                 >
-                                                    {person.is_active ? 'Block' : 'Unblock'}
+                                                    {person.is_active ? 'Ban' : 'Unban'}
                                                 </button>
                                             </div>
                                         </motion.div>
