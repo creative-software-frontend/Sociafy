@@ -513,7 +513,7 @@ export function DashboardHome() {
                                                 color: 'var(--text-muted)',
                                                 fontSize: '0.75rem',
                                             }}>
-                                                ID: #{u.id} • Active now
+                                                Active now
                                             </p>
                                         </div>
                                     </div>

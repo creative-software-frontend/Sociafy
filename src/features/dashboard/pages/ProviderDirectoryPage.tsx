@@ -119,7 +119,6 @@ export function ProviderDirectoryPage() {
                                     padding: '20px 10px 10px',
                                 }}>
                                     <p style={{ color: 'var(--text-primary)', fontSize: '0.8rem', fontWeight: 600, fontFamily: "'Inter', sans-serif", marginBottom: '2px' }}>{p.name}</p>
-                                    <p style={{ color: 'var(--blue-vivid)', fontSize: '0.55rem', fontFamily: "'Inter', sans-serif", marginBottom: '4px' }}>#{p.id}</p>
                                     <div style={{ display: 'flex', gap: '8px', fontSize: '0.6rem', color: 'var(--text-muted)' }}>
                                         {p.profession && <span>{p.profession}</span>}
                                         {p.location && <span>• {p.location}</span>}

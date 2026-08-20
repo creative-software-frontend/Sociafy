@@ -168,7 +168,7 @@ export function AdminHome() {
             key: `deposit-${d.id}`,
             kind: 'deposit' as const,
             id: d.id,
-            name: d.user_name || `User #${d.user_id}`,
+            name: d.user_name || 'Member',
             amount: d.amount,
             created_at: d.created_at,
         })),
@@ -176,7 +176,7 @@ export function AdminHome() {
             key: `withdraw-${w.id}`,
             kind: 'withdraw' as const,
             id: w.id,
-            name: w.user_name || `User #${w.user_id}`,
+            name: w.user_name || 'Member',
             amount: w.amount,
             created_at: w.created_at,
             withdraw: w as WithdrawRequestItem,
@@ -543,7 +543,7 @@ export function AdminHome() {
                                     </span>
                                     <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                         <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>
-                                            {e.user_name || `User #${e.user_id}`}
+                                            {e.user_name || 'Member'}
                                         </span>
                                         <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif", marginLeft: '6px' }}>
                                             {e.status} · {shortTime(e.created_at)}

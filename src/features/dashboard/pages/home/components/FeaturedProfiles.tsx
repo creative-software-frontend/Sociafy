@@ -139,7 +139,7 @@ export function FeaturedProfiles({
                                 {p.name}{age ? `, ${age}` : ''}
                             </p>
                             <p style={{ color: isUser ? 'var(--gold-mid)' : 'var(--blue-vivid)', fontSize: 'clamp(0.6rem, 2.5vw, 0.7rem)', fontWeight: 600, fontFamily: "'Inter', sans-serif", textShadow: isUser ? '0 0 5px rgba(232,160,32,0.5)' : '0 0 5px rgba(96,165,250,0.5)' }}>
-                                {isUser ? (p.location || p.profession || `#${p.id}`) : (p.profession || p.location || `#${p.id}`)}
+                                {p.location || p.profession || 'Member'}
                             </p>
                         </div>
                     </div>

@@ -56,6 +56,16 @@ function fmtDate(d: string): string {
     return t.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+// Hide user IDs embedded in backend-generated descriptions (e.g. "(user #5)").
+function hideUserRefs(text: string): string {
+    return String(text || '')
+        .replace(/\s*\(?\s*from\s+user\s*#\d+\s*\)?/gi, '')
+        .replace(/\s*\(?\s*user\s*#\d+\s*\)?/gi, '')
+        .replace(/\s*to\s*#\d+/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 function typeInfo(type: string): { label: string; bg: string; color: string; border: string } {
     switch (type) {
         case 'membership_income':
@@ -253,7 +263,7 @@ export function AdminWalletPage() {
                                                         <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>{fmtDate(tx.created_at)}</span>
                                                     </div>
                                                     <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: '4px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                        {tx.description || '—'}
+                                                        {hideUserRefs(tx.description || '') || '—'}
                                                     </p>
                                                 </div>
                                                 <span style={{

@@ -151,7 +151,7 @@ export function ChatPage() {
         if (!Number.isFinite(id)) return;
         if (cLoading) return; // wait for the contact list so we can pick the real name
         const found = contacts.find((c) => Number(c.id) === id) ?? null;
-        setSelected(found ?? { id, name: `User ${id}`, last_seen: null, is_online: 0 });
+        setSelected(found ?? { id, name: 'Member', last_seen: null, is_online: 0 });
         setSearchParams({}, { replace: true });
     }, [searchParams, contacts, cLoading, setSearchParams]);
 
@@ -228,7 +228,7 @@ export function ChatPage() {
                     ? { ...prev[idx], latestMessage: normalized.message, latestTime: normalized.created_at }
                     : {
                         id: partnerId,
-                        name: normalized.sender_name || `User ${partnerId}`,
+                        name: normalized.sender_name || 'Member',
                         last_seen: normalized.created_at,
                         is_online: 1,
                         latestMessage: normalized.message,

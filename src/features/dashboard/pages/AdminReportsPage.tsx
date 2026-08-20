@@ -9,6 +9,16 @@ import { WithdrawReviewModal } from './WithdrawReviewModal';
 
 
 
+// Hide user IDs embedded in backend-generated descriptions (e.g. "(user #5)").
+function hideUserRefs(text: string): string {
+    return String(text || '')
+        .replace(/\s*\(?\s*from\s+user\s*#\d+\s*\)?/gi, '')
+        .replace(/\s*\(?\s*user\s*#\d+\s*\)?/gi, '')
+        .replace(/\s*to\s*#\d+/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 const typeLabel: Record<string, { label: string; color: string; bg: string }> = {
     deposit: { label: 'Deposit', color: 'var(--green-status)', bg: 'rgba(16,185,129,0.1)' },
     withdraw: { label: 'Withdraw', color: 'var(--gold-mid)', bg: 'rgba(197,168,128,0.1)' },
@@ -375,7 +385,7 @@ export default function AdminReportsPage() {
                         <div key={`withdraw-${req.id}`} style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)', background: 'var(--bg-input)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
                                 <strong style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>
-                                    {req.request_id || `#${req.id}`} • {req.user_name || `User #${req.user_id}`}
+                                    {req.request_id || 'Withdrawal'} • {req.user_name || 'Member'}
                                 </strong>
                                 <span style={{ color: 'var(--gold-mid)', fontWeight: 600 }}><PointsDisplay amount={req.amount} decimals={2} /></span>
                             </div>
@@ -668,7 +678,7 @@ export default function AdminReportsPage() {
                                             <div style={{ marginBottom: 'var(--space-1)' }}>
                                                 <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Note</span>
                                             </div>
-                                            {e.description || '—'}
+                                            {hideUserRefs(e.description || '') || '—'}
                                         </div>
                                     </div>
                                 </motion.div>

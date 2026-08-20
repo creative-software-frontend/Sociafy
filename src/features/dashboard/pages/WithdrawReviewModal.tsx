@@ -178,9 +178,8 @@ export function WithdrawReviewModal({
                             {status}
                         </span>
                     </Row>
-                    <Row label="Requester">{withdrawal.user_name || `User #${withdrawal.user_id}`}</Row>
+                    <Row label="Requester">{withdrawal.user_name || 'Member'}</Row>
                     <Row label="Email">{withdrawal.user_email || '—'}</Row>
-                    <Row label="User ID">#{withdrawal.user_id}</Row>
                     <Row label="Role">{withdrawal.user_role ? (withdrawal.user_role === 'provider' ? 'Provider' : 'User') : '—'}</Row>
                     <Row label="Wallet balance">
                         {withdrawal.user_balance != null
