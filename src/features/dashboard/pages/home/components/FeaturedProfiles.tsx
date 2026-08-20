@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { resolveMediaUrl } from '../../../../../config/apiConfig';
 
 export function FeaturedProfiles({
@@ -20,6 +21,8 @@ export function FeaturedProfiles({
     isUser?: boolean;
     onSelect: (id: number) => void;
 }) {
+    const [showAll, setShowAll] = useState(false);
+
     const toFullUploadUrl = (url: string | null): string | undefined => {
         return resolveMediaUrl(url) || undefined;
     };
@@ -35,12 +38,42 @@ export function FeaturedProfiles({
         <div style={{ marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                 <span style={{ color: 'var(--gold-mid)', fontSize: '18px', textShadow: '0 0 10px rgba(232,160,32,0.7)', flexShrink: 0 }}>★</span>
-                <span style={{ fontSize: 'clamp(0.9rem, 4vw, 1rem)', fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>
+                <span style={{ fontSize: 'clamp(0.9rem, 4vw, 1rem)', fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif", flex: 1 }}>
                     {isUser ? 'Membership Holders' : 'Featured Profiles'}
                 </span>
+                {!loading && profiles.length > 0 && (
+                    <button
+                        type="button"
+                        onClick={() => setShowAll(v => !v)}
+                        style={{
+                            background: 'transparent',
+                            border: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            color: 'var(--blue-vivid)',
+                            fontSize: '0.7rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.05em',
+                            textTransform: 'uppercase',
+                            fontFamily: "'Inter', sans-serif",
+                            flexShrink: 0,
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+                        onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+                    >
+                        {showAll ? 'Show Less ↑' : 'Show More →'}
+                    </button>
+                )}
             </div>
-            {/* Horizontal scroll — cards sized relative to viewport */}
-            <div style={{ display: 'flex', gap: 'clamp(10px, 3vw, 14px)', overflowX: 'auto', paddingBottom: '10px', WebkitOverflowScrolling: 'touch' }}>
+            {/* Horizontal strip → grid when expanded to show all */}
+            <div style={{
+                display: 'flex',
+                gap: 'clamp(10px, 3vw, 14px)',
+                paddingBottom: '10px',
+                ...(showAll
+                    ? { flexWrap: 'wrap' as const }
+                    : { overflowX: 'auto' as const, WebkitOverflowScrolling: 'touch' as const }),
+            }}>
                 {loading && (
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', padding: '20px 0' }}>
                         Loading profiles...
@@ -69,7 +102,9 @@ export function FeaturedProfiles({
                             }
                         }}
                         style={{
-                            flex: '0 0 clamp(120px, 38vw, 150px)',
+                            flex: showAll ? '0 0 calc(33.333% - 10px)' : '0 0 clamp(120px, 38vw, 150px)',
+                            minWidth: 0,
+                            boxSizing: 'border-box',
                             borderRadius: '12px',
                             overflow: 'hidden',
                             border: isUser ? '2px solid var(--gold-mid)' : '2px solid var(--blue-vivid)',
