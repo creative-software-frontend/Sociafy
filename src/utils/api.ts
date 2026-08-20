@@ -1100,8 +1100,6 @@ export interface AdminWalletTransaction {
     created_at: string;
 }
 
-// ── Event endpoints ────────────────────────────────────────────────────────────
-
 export interface Event {
     id: number;
     title: string;
@@ -1128,6 +1126,38 @@ export interface EventParticipant {
     joined_at: string;
 }
 
+// ── Deposit payment methods (admin-managed bKash/Nagad) ────────────────────────
+export interface DepositPaymentMethod {
+    id: number;
+    method: 'bkash' | 'nagad';
+    account_number: string;
+    account_type: 'personal' | 'agent';
+    is_active: number;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export const paymentMethodApi = {
+    getActive: () => request<{ methods: DepositPaymentMethod[] }>('/deposit-methods'),
+    getAll: () => request<{ methods: DepositPaymentMethod[] }>('/admin/deposit-methods'),
+    create: (payload: { method: string; account_number: string; account_type: string; is_active?: boolean }) =>
+        request<{ method: DepositPaymentMethod }>('/admin/deposit-methods', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        }),
+    update: (id: number, payload: { account_number?: string; account_type?: string; is_active?: boolean }) =>
+        request<{ method: DepositPaymentMethod }>(`/admin/deposit-methods/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+        }),
+    toggle: (id: number, is_active: boolean) =>
+        request<{ method: DepositPaymentMethod }>(`/admin/deposit-methods/${id}/toggle`, {
+            method: 'PATCH',
+            body: JSON.stringify({ is_active }),
+        }),
+};
+
+// ── Event endpoints ────────────────────────────────────────────────────────────
 export const eventApi = {
     getEvents: (role: string) =>
         request<Event[]>(`/${role}/events`),

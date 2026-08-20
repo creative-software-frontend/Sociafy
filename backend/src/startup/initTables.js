@@ -808,6 +808,24 @@ module.exports = async (db) => {
         console.log('chat_messages table verified');
 
         // ════════════════════════════════════════════════════════════
+        // Deposit payment methods (admin-configured bKash/Nagad numbers)
+        // Resilient self-heal when migrations weren't run (fresh deployments)
+        // ════════════════════════════════════════════════════════════
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS deposit_payment_methods (
+                id             INT AUTO_INCREMENT PRIMARY KEY,
+                method         VARCHAR(10) NOT NULL,
+                account_number VARCHAR(20) NOT NULL,
+                account_type   VARCHAR(10) NOT NULL DEFAULT 'personal',
+                is_active      TINYINT(1)  NOT NULL DEFAULT 1,
+                created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_dpm_method_type (method, account_type)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('deposit_payment_methods verified');
+
+        // ════════════════════════════════════════════════════════════
         // Gift catalog + gift transactions + Gift Asset Library
         // Resilient self-heal when migrations weren't run (fresh deployments)
         // ════════════════════════════════════════════════════════════

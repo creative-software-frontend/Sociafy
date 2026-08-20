@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { TopNav } from './TopNav';
-import { userApi, type Transaction } from '../../../utils/api';
+import { userApi, type Transaction, type DepositPaymentMethod } from '../../../utils/api';
 import { useToast } from '../../../components/Toast';
 import { PointsDisplay, PointsIcon } from '../../../components/PointsDisplay';
+import { DepositMethodSelector } from '../../../components/DepositMethodSelector';
 
 export function AssetsPage() {
     const { user } = useAuth();
@@ -22,6 +23,13 @@ export function AssetsPage() {
     const [amountInput, setAmountInput] = useState('');
     const [modalError, setModalError] = useState('');
     const [modalLoading, setModalLoading] = useState(false);
+
+    // Deposit payment method (dynamic, backend-configured — never hardcoded)
+    const [selectedDepositMethod, setSelectedDepositMethod] = useState<DepositPaymentMethod | null>(null);
+    const [depositTrxId, setDepositTrxId] = useState('');
+    const [depositScreenshotUrl, setDepositScreenshotUrl] = useState('');
+    const [uploadProgress, setUploadProgress] = useState('');
+    const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
 
     // New state variables for withdrawal
     const [withdrawMethod, setWithdrawMethod] = useState('bKash');
@@ -63,15 +71,37 @@ export function AssetsPage() {
             setModalError('Please enter a valid positive amount.');
             return;
         }
+        if (!selectedDepositMethod) {
+            setModalError('Please select a payment method.');
+            return;
+        }
+        if (!depositTrxId.trim()) {
+            setModalError('Transaction ID is required.');
+            return;
+        }
+        if (!depositScreenshotUrl.trim()) {
+            setModalError('Please upload your payment screenshot.');
+            return;
+        }
 
         try {
             setModalLoading(true);
-            const res = await userApi.deposit(amt);
+            const res = await userApi.deposit({
+                amount: amt,
+                method: selectedDepositMethod.method === 'bkash' ? 'bKash' : 'Nagad',
+                trx_id: depositTrxId.trim(),
+                screenshot_url: depositScreenshotUrl.trim(),
+            });
             if (res.error) {
                 setModalError(res.error);
             } else {
                 setAmountInput('');
+                setSelectedDepositMethod(null);
+                setDepositTrxId('');
+                setDepositScreenshotUrl('');
+                setUploadProgress('');
                 setShowDepositModal(false);
+                toast.success('Waiting for admin approval.');
                 await fetchWallet();
             }
         } catch (err: any) {
@@ -210,6 +240,10 @@ export function AssetsPage() {
                                     onClick: () => {
                                         setAmountInput('');
                                         setModalError('');
+                                        setSelectedDepositMethod(null);
+                                        setDepositTrxId('');
+                                        setDepositScreenshotUrl('');
+                                        setUploadProgress('');
                                         setShowDepositModal(true);
                                     },
                                     icon: (
@@ -515,6 +549,68 @@ export function AssetsPage() {
                                 autoFocus
                             />
                         </div>
+
+                        <DepositMethodSelector onSelect={setSelectedDepositMethod} />
+
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            Transaction ID
+                            <input
+                                value={depositTrxId}
+                                onChange={(e) => setDepositTrxId(e.target.value)}
+                                placeholder="Enter transaction ID"
+                                style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                            />
+                        </label>
+
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            Payment Screenshot
+                            <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                disabled={uploadingScreenshot}
+                                onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    if (uploadingScreenshot) return;
+                                    const ext = file.name?.toLowerCase().includes('.')
+                                        ? file.name.slice(file.name.lastIndexOf('.'))
+                                        : '';
+                                    const extOk = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
+                                    const mimeOk = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
+                                    if (!extOk || !mimeOk) {
+                                        setModalError('Only jpg, jpeg, png, webp images are allowed.');
+                                        return;
+                                    }
+                                    if (file.size > 5 * 1024 * 1024) {
+                                        setModalError('Maximum file size is 5MB.');
+                                        return;
+                                    }
+                                    setModalError('');
+                                    setUploadProgress('Uploading…');
+                                    setUploadingScreenshot(true);
+                                    try {
+                                        const uploadRes = await userApi.uploadImage(file, 'deposits');
+                                        if (uploadRes.error || !uploadRes.data?.url) throw new Error(uploadRes.error || 'Upload failed');
+                                        setDepositScreenshotUrl(uploadRes.data.url);
+                                        setUploadProgress('');
+                                    } catch (err: any) {
+                                        setDepositScreenshotUrl('');
+                                        setUploadProgress('');
+                                        setModalError(err?.message || 'Upload failed');
+                                    } finally {
+                                        setUploadingScreenshot(false);
+                                    }
+                                }}
+                                style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                            />
+                            {uploadingScreenshot ? (
+                                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>{uploadProgress || 'Uploading…'}</div>
+                            ) : depositScreenshotUrl ? (
+                                <div style={{ color: 'var(--green-status)', fontSize: '0.75rem', fontWeight: 800 }}>Screenshot uploaded ✓</div>
+                            ) : (
+                                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Please upload your payment screenshot.</div>
+                            )}
+                        </label>
 
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                             <button type="button" onClick={() => setShowDepositModal(false)} style={{ padding: '10px 16px', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: '6px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>

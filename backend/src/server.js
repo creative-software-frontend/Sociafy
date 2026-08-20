@@ -76,6 +76,9 @@ app.use("/api/call", require("./routes/callRoutes"));
 app.use("/api/gift", require("./routes/giftRoutes").userRouter);
 app.use("/api/admin/gifts", require("./routes/giftRoutes").adminRouter);
 
+app.use("/api/deposit-methods", require("./routes/paymentMethodRoutes").userRouter);
+app.use("/api/admin/deposit-methods", require("./routes/paymentMethodRoutes").adminRouter);
+
 
 // 404
 app.use((req, res) => {

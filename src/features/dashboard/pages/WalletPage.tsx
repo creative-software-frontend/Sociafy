@@ -4,6 +4,8 @@ import { TopNav } from "./TopNav";
 import { userApi } from "../../../utils/api";
 import { useToast } from "../../../components/Toast";
 import { PointsDisplay, PointsIcon } from "../../../components/PointsDisplay";
+import { DepositMethodSelector } from "../../../components/DepositMethodSelector";
+import type { DepositPaymentMethod } from "../../../utils/api";
 
 type Transaction = {
     id: number;
@@ -34,7 +36,7 @@ export function WalletPage() {
     const [showDepositModal, setShowDepositModal] = useState(false);
     const [showWithdrawModal, setShowWithdrawModal] = useState(false);
     const [amountInput, setAmountInput] = useState("");
-    const [depositMethod, setDepositMethod] = useState<'bKash' | 'Nagad'>('bKash');
+    const [selectedDepositMethod, setSelectedDepositMethod] = useState<DepositPaymentMethod | null>(null);
     const [depositTrxId, setDepositTrxId] = useState("");
 
     // Must upload payment screenshot before submitting deposit request.
@@ -82,6 +84,10 @@ export function WalletPage() {
             setModalStatus({ type: 'error', message: 'Please enter a valid positive amount.' });
             return;
         }
+        if (!selectedDepositMethod) {
+            setModalStatus({ type: 'error', message: 'Please select a payment method.' });
+            return;
+        }
         if (!depositTrxId.trim()) {
             setModalStatus({ type: 'error', message: 'Transaction ID is required.' });
             return;
@@ -97,7 +103,7 @@ export function WalletPage() {
             setModalLoading(true);
             const res = await userApi.deposit({
                 amount: amt,
-                method: depositMethod,
+                method: selectedDepositMethod.method === 'bkash' ? 'bKash' : 'Nagad',
                 trx_id: depositTrxId.trim(),
                 screenshot_url: depositScreenshotUrl.trim(),
             });
@@ -105,7 +111,7 @@ export function WalletPage() {
                 setModalStatus({ type: 'error', message: res.error });
             } else {
                 setAmountInput("");
-                setDepositMethod('bKash');
+                setSelectedDepositMethod(null);
                 setDepositTrxId("");
                 setDepositScreenshotUrl('');
                 setUploadProgress('');
@@ -311,7 +317,7 @@ export function WalletPage() {
                                     sub: "Deposit funds to wallet",
                                     onClick: () => {
                                         setAmountInput("");
-                                        setDepositMethod('bKash');
+                                        setSelectedDepositMethod(null);
                                         setDepositTrxId("");
                                         setDepositScreenshotUrl('');
                                         setUploadProgress('');
@@ -681,17 +687,7 @@ export function WalletPage() {
                             />
                         </div>
 
-                        <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                            Payment Method
-                            <select
-                                value={depositMethod}
-                                onChange={(e) => setDepositMethod(e.target.value as 'bKash' | 'Nagad')}
-                                style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
-                            >
-                                <option value="bKash">bKash</option>
-                                <option value="Nagad">Nagad</option>
-                            </select>
-                        </label>
+                        <DepositMethodSelector onSelect={setSelectedDepositMethod} />
 
                         <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                             Transaction ID

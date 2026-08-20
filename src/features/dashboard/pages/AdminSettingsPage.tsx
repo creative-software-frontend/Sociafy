@@ -4,6 +4,7 @@ import { adminApi } from '../../../utils/api';
 import type { Package, Feature, CreatePackagePayload } from '../../../utils/api';
 import { PointsDisplay } from '../../../components/PointsDisplay';
 import { useConfirmDialog } from '../../../components/ConfirmDialog';
+import { DepositPaymentMethodsSection } from './DepositPaymentMethodsSection';
 
 type FeatureWithFlags = Feature & {
     is_coming_soon?: number | boolean;
@@ -889,6 +890,8 @@ export function AdminSettingsPage() {
                 </div>
 
                 {activeTab === 'packages' ? <PackagesSection /> : null}
+
+                <DepositPaymentMethodsSection />
             </div>
         </div>
     );

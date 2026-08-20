@@ -1,10 +1,20 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import type { Post, PostComment } from '../../../../utils/api';
 import { serviceApi, userApi } from '../../../../utils/api';
 import { Avatar } from './Avatar';
 import { API_ORIGIN } from '../../../../config/apiConfig';
 
 const BACKEND_ORIGIN = API_ORIGIN;
+
+// Production-safe share URL: the app's public origin (+ Vite base path if the
+// app is deployed under a subpath) + the current role's newsfeed route,
+// deep-linked to the specific post. Never uses a hardcoded role or localhost.
+function buildShareUrl(role: string | undefined, postId: number) {
+    const base = (import.meta.env.BASE_URL ?? '/').replace(/\/+$/, '');
+    const rolePath = role || 'user';
+    return `${window.location.origin}${base}/${rolePath}/dashboard/newsfeed#post-${postId}`;
+}
 
 function toFullUrl(url: string | null | undefined): string | null {
     if (!url) return null;
@@ -348,6 +358,7 @@ function ShareModal({ post, shareUrl, copied, onCopy, onClose }: ShareModalProps
 
 interface PostCardProps {
     post: Post;
+    role?: string;
     cardState: CardState;
     onLike: () => void;
     onToggleComments: () => void;
@@ -360,7 +371,7 @@ interface PostCardProps {
 }
 
 function PostCard({
-    post, cardState,
+    post, role, cardState,
     onLike, onToggleComments, onLoadMoreComments,
     onCommentInputChange, onSubmitComment,
     onShare, onShareCopy, onShareClose,
@@ -368,12 +379,13 @@ function PostCard({
     const hasMoreComments = cardState.comments.length < cardState.commentsTotal;
 
     return (
-        <div style={{
+        <div id={`post-${post.id}`} style={{
             background: 'linear-gradient(135deg, rgba(11,21,45,0.92), rgba(7,16,32,0.92))',
             border: '1px solid var(--border-subtle)',
             borderRadius: 'var(--radius-xl)', overflow: 'hidden',
             boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
             animation: 'fadeIn 0.3s ease',
+            scrollMarginTop: '90px',
         }}>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 16px 12px' }}>
@@ -465,7 +477,7 @@ function PostCard({
             {cardState.showShareModal && (
                 <ShareModal
                     post={post}
-                    shareUrl={`${window.location.origin}/user/dashboard/newsfeed#post-${post.id}`}
+                    shareUrl={buildShareUrl(role, post.id)}
                     copied={cardState.shareCopied}
                     onCopy={onShareCopy}
                     onClose={onShareClose}
@@ -738,9 +750,22 @@ function ComposeCard({ myName, onPostCreated }: ComposeCardProps) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function NewsfeedTab({ myName }: { myName: string }) {
+    const { role } = useParams<{ role: string }>();
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [cardStates, setCardStates] = useState<Map<number, CardState>>(new Map());
+
+    // If arriving via a shared link (#post-<id>), scroll that post into view so
+    // the shared deep link opens the actual post, not just the top of the feed.
+    useEffect(() => {
+        const hash = window.location.hash;
+        if (!hash || !hash.startsWith('#post-')) return;
+        const id = hash.slice('#post-'.length);
+        const timer = window.setTimeout(() => {
+            document.getElementById(`post-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 350);
+        return () => window.clearTimeout(timer);
+    }, [posts]);
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -873,7 +898,7 @@ export function NewsfeedTab({ myName }: { myName: string }) {
     };
 
     const handleCopyLink = async (post: Post) => {
-        const shareUrl = `${window.location.origin}/user/dashboard/newsfeed#post-${post.id}`;
+        const shareUrl = buildShareUrl(role, post.id);
 
         try {
             await navigator.clipboard.writeText(shareUrl);
@@ -929,6 +954,7 @@ export function NewsfeedTab({ myName }: { myName: string }) {
                 posts.map(post => (
                     <PostCard
                         key={post.id}
+                        role={role}
                         post={post}
                         cardState={getCard(post.id)}
                         onLike={() => handleLike(post)}
