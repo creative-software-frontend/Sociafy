@@ -5,46 +5,55 @@
 
 module.exports = {
   up: async (db) => {
-    await db.query(`
-      ALTER TABLE deposit_requests
-      ADD COLUMN request_id VARCHAR(64) NULL;
-    `);
+    const columnExists = async (table, column) => {
+      const [rows] = await db.query(
+        `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+        [table, column]
+      );
+      return rows.length > 0;
+    };
+    const indexExists = async (table, index) => {
+      const [rows] = await db.query(
+        `SELECT INDEX_NAME FROM information_schema.STATISTICS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?`,
+        [table, index]
+      );
+      return rows.length > 0;
+    };
 
-    await db.query(`
-      ALTER TABLE withdraw_requests
-      ADD COLUMN request_id VARCHAR(64) NULL;
-    `);
+    if (!(await columnExists('deposit_requests', 'request_id'))) {
+      await db.query('ALTER TABLE deposit_requests ADD COLUMN request_id VARCHAR(64) NULL');
+    }
+    if (!(await columnExists('withdraw_requests', 'request_id'))) {
+      await db.query('ALTER TABLE withdraw_requests ADD COLUMN request_id VARCHAR(64) NULL');
+    }
 
-    // Best-effort unique constraints. If the DB supports creating indexes, use indexes.
-    await db.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS deposit_requests_request_id_unique
-      ON deposit_requests(request_id);
-    `);
-
-    await db.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS withdraw_requests_request_id_unique
-      ON withdraw_requests(request_id);
-    `);
+    if (!(await indexExists('deposit_requests', 'deposit_requests_request_id_unique'))) {
+      await db.query('CREATE UNIQUE INDEX deposit_requests_request_id_unique ON deposit_requests(request_id)');
+    }
+    if (!(await indexExists('withdraw_requests', 'withdraw_requests_request_id_unique'))) {
+      await db.query('CREATE UNIQUE INDEX withdraw_requests_request_id_unique ON withdraw_requests(request_id)');
+    }
   },
 
   down: async (db) => {
-    await db.query(`
-      DROP INDEX IF EXISTS deposit_requests_request_id_unique;
-    `);
+    const columnExists = async (table, column) => {
+      const [rows] = await db.query(
+        `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+        [table, column]
+      );
+      return rows.length > 0;
+    };
+    const dropIndex = async (table, index) => {
+      try { await db.query(`DROP INDEX ${index} ON ${table}`); } catch (e) { /* already absent */ }
+    };
 
-    await db.query(`
-      DROP INDEX IF EXISTS withdraw_requests_request_id_unique;
-    `);
-
-    await db.query(`
-      ALTER TABLE deposit_requests
-      DROP COLUMN request_id;
-    `);
-
-    await db.query(`
-      ALTER TABLE withdraw_requests
-      DROP COLUMN request_id;
-    `);
+    await dropIndex('deposit_requests', 'deposit_requests_request_id_unique');
+    await dropIndex('withdraw_requests', 'withdraw_requests_request_id_unique');
+    if (await columnExists('deposit_requests', 'request_id')) await db.query('ALTER TABLE deposit_requests DROP COLUMN request_id');
+    if (await columnExists('withdraw_requests', 'request_id')) await db.query('ALTER TABLE withdraw_requests DROP COLUMN request_id');
   }
 };
 
