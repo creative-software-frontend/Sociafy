@@ -14,16 +14,25 @@
 
 module.exports = {
   up: async (db) => {
-    await db.query(`
-      ALTER TABLE users
-      ADD COLUMN token_version INT NOT NULL DEFAULT 0;
-    `);
+    const [rows] = await db.query(
+      `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'token_version'`
+    );
+    if (!rows.length) {
+      await db.query(`
+        ALTER TABLE users
+        ADD COLUMN token_version INT NOT NULL DEFAULT 0;
+      `);
+    }
   },
 
   down: async (db) => {
-    await db.query(`
-      ALTER TABLE users
-      DROP COLUMN token_version;
-    `);
+    const [rows] = await db.query(
+      `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'token_version'`
+    );
+    if (rows.length) {
+      await db.query(`ALTER TABLE users DROP COLUMN token_version`);
+    }
   }
 };
