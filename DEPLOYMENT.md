@@ -100,6 +100,12 @@ cd backend
 NODE_ENV=production node src/server.js
 ```
 
+For hosted deployments using the backend `npm start` script, migrations run
+automatically before the server starts. The migration runner is idempotent and
+the server will not start if a migration fails. For platforms with separate
+release/pre-deploy commands, run `npm run migrate` from `backend` during the
+release step instead of relying on the start command.
+
 - Production startup fails fast if required env vars are missing or
   `JWT_SECRET` is too short.
 - `CORS_ORIGIN` must list the real frontend origin (and your own dev origins if
