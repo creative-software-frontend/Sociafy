@@ -65,6 +65,7 @@ app.use("/api/provider", require("./routes/partnerRequestRoutes"));
 
 app.use("/api/admin/auth", require("./routes/adminAuthRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
+app.use("/api/admin", require("./routes/adminReportRoutes"));
 app.use("/api/admin/wallet", require("./routes/adminWalletRoutes"));
 app.use("/api/admin-wallet", require("./routes/admin.wallet.routes"));
 
@@ -78,6 +79,7 @@ app.use("/api/admin/gifts", require("./routes/giftRoutes").adminRouter);
 
 app.use("/api/deposit-methods", require("./routes/paymentMethodRoutes").userRouter);
 app.use("/api/admin/deposit-methods", require("./routes/paymentMethodRoutes").adminRouter);
+app.use("/api", require("./routes/reportRoutes"));
 
 
 // 404

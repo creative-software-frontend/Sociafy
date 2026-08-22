@@ -9,6 +9,39 @@ interface ApiResponse<T = unknown> {
     status: number;
 }
 
+export interface ReportReason {
+    id: number;
+    name: string;
+    description: string | null;
+}
+
+export interface CreateReportPayload {
+    reported_user_id: number;
+    reason_id: number;
+    description?: string;
+}
+
+export interface AdminUserReport {
+    id: number;
+    reporter_id: number;
+    reporter_name: string;
+    reporter_email: string;
+    reporter_role: 'user' | 'provider';
+    reported_user_id: number;
+    reported_name: string;
+    reported_email: string;
+    reported_role: 'user' | 'provider';
+    reason_id: number;
+    reason_name: string;
+    description: string | null;
+    status: 'Pending' | 'Reviewed' | 'Dismissed';
+    admin_note: string | null;
+    reviewed_by: number | null;
+    reviewer_name: string | null;
+    reviewed_at: string | null;
+    created_at: string;
+}
+
 async function request<T>(
     path: string,
     options: RequestInit = {}
@@ -52,6 +85,15 @@ async function request<T>(
         return { status: 0, error: 'Network error — is the backend running?' };
     }
 }
+
+export const reportApi = {
+    getReasons: () => request<{ reasons: ReportReason[] }>('/report-reasons'),
+    createReport: (payload: CreateReportPayload) =>
+        request<{ report: unknown }>('/reports', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        }),
+};
 
 // ── Auth endpoints ────────────────────────────────────────────────────────────
 
@@ -1019,6 +1061,33 @@ export const adminApi = {
 
     getReports: () =>
         request<ReportsData>('/admin/reports'),
+
+    getUserReports: (status?: string) =>
+        request<{ reports: AdminUserReport[] }>(`/admin/reports/users${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+
+    reviewUserReport: (id: number, status: AdminUserReport['status'], admin_note?: string) =>
+        request<{ report: AdminUserReport }>(`/admin/reports/users/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status, admin_note }),
+        }),
+
+    getReportReasons: () =>
+        request<{ reasons: ReportReason[] & Array<{ is_active?: number }> }>('/admin/report-reasons'),
+
+    createReportReason: (payload: { name: string; description?: string; is_active?: boolean }) =>
+        request<{ reason: ReportReason }>('/admin/report-reasons', { method: 'POST', body: JSON.stringify(payload) }),
+
+    updateReportReason: (id: number, payload: { name?: string; description?: string; is_active?: boolean }) =>
+        request<{ reason: ReportReason }>(`/admin/report-reasons/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+
+    toggleReportReason: (id: number, is_active: boolean) =>
+        request<{ reason: ReportReason }>(`/admin/report-reasons/${id}/toggle`, { method: 'PATCH', body: JSON.stringify({ is_active }) }),
+
+    banUser: (id: number, admin_note?: string) =>
+        request<{ id: number; is_active: number }>(`/admin/users/${id}/ban`, { method: 'PATCH', body: JSON.stringify({ admin_note }) }),
+
+    unbanUser: (id: number, admin_note?: string) =>
+        request<{ id: number; is_active: number }>(`/admin/users/${id}/unban`, { method: 'PATCH', body: JSON.stringify({ admin_note }) }),
 
     getPendingWalletRequests: async () => {
         const [depositRes, withdrawRes] = await Promise.all([

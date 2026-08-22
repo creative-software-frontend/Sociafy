@@ -4,6 +4,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 const db = require("../config/db");
 const { handleError } = require("../utils/httpError");
+const reportService = require("../services/reportService");
 
 // ─── Helper: fetch packages with their normalized features ────────────────────
 async function getPackagesWithFeatures(whereClause = '', params = []) {
@@ -274,9 +275,8 @@ router.put("/users/:id/toggle-active",
         try {
             const [rows] = await db.query("SELECT is_active FROM users WHERE id=?", [req.params.id]);
             if (!rows.length) return res.status(404).json({ message: "User not found" });
-            const newStatus = rows[0].is_active ? 0 : 1;
-            await db.query("UPDATE users SET is_active=? WHERE id=?", [newStatus, req.params.id]);
-            res.json({ is_active: newStatus });
+            const result = await reportService.setAccountActive({ adminId: req.user.id, userId: req.params.id, isActive: !rows[0].is_active });
+            res.json(result);
         } catch (err) {
             return handleError(res, err);
         }

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { userApi, providerApi, type PartnerRequestStatus } from "../../../../utils/api";
 import { useAuth } from "../../../../context/AuthContext";
+import { ReportUserModal } from "../../../../components/ReportUserModal";
 
 /**
  * The profile details required by the View Profile modal. Both partner-search
@@ -102,6 +103,7 @@ export function ProfileDetailsModal({
     const role = user?.role;
     const [gated, setGated] = useState<{ profile: any; access: 'public' | 'full' } | null>(null);
     const [loadingProfile, setLoadingProfile] = useState(false);
+    const [reportOpen, setReportOpen] = useState(false);
 
     const status = profile ? (statusById.get(profile.id) ?? null) : null;
     const canRequest = status === null || status === 'rejected' || status === 'cancelled';
@@ -280,10 +282,35 @@ export function ProfileDetailsModal({
                                     Open Chat
                                 </button>
                             )}
+
+                            <button
+                                type="button"
+                                onClick={() => setReportOpen(true)}
+                                style={{
+                                    width: "100%",
+                                    marginTop: 10,
+                                    padding: "11px",
+                                    background: "transparent",
+                                    border: "1px solid rgba(239,68,68,0.45)",
+                                    borderRadius: 11,
+                                    color: "var(--red-status)",
+                                    fontWeight: 800,
+                                    fontSize: "0.78rem",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                Report profile
+                            </button>
                         </>
                     )}
                 </div>
             </motion.div>
+            <ReportUserModal
+                open={reportOpen}
+                reportedUserId={profile.id}
+                reportedUserName={view.name}
+                onClose={() => setReportOpen(false)}
+            />
         </div>
     );
 }

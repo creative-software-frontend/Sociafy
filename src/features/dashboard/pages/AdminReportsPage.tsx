@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { resolveMediaUrl } from '../../../config/apiConfig';
 import { PointsDisplay } from '../../../components/PointsDisplay';
 import { WithdrawReviewModal } from './WithdrawReviewModal';
+import AdminModerationPanel from './AdminModerationPanel';
 
 
 
@@ -331,6 +332,8 @@ export default function AdminReportsPage() {
                     </motion.div>
                 ))}
             </div>
+
+            <AdminModerationPanel />
 
             {/* Pending Requests */}
             <motion.div variants={fadeUp} className="card" style={{ marginBottom: 'var(--space-8)', padding: 'var(--space-6)' }}>

@@ -17,6 +17,7 @@ import { GiftPickerModal } from '../../gift/components/GiftPickerModal';
 import { GiftVisual } from '../../gift/components/GiftVisual';
 import { parseGiftMessage } from '../../gift/types/gift';
 import type { Gift } from '../../gift/types/gift';
+import { ReportUserModal } from '../../../components/ReportUserModal';
 
 
 /* ─── helpers ─── */
@@ -123,6 +124,7 @@ export function ChatPage() {
     const [partnerChecking, setPartnerChecking] = useState(false);
     const [hasBalance, setHasBalance] = useState(true);
     const [showGiftPicker, setShowGiftPicker] = useState(false);
+    const [reportOpen, setReportOpen] = useState(false);
 
     useEffect(() => {
         (async () => {
@@ -588,6 +590,15 @@ export function ChatPage() {
                                     canCall={!partnerLocked && hasFeature('AUDIO_CALL') && callState.status === 'idle'}
                                     hasBalance={hasBalance}
                                 />
+                                <button
+                                    type="button"
+                                    aria-label={`Report ${selected.name}`}
+                                    title="Report this account"
+                                    onClick={() => setReportOpen(true)}
+                                    style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.08)', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                                >
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 9v4" /><path d="M12 17h.01" /><path d="M10.3 3.7 2.9 17a2 2 0 0 0 1.75 3h14.7a2 2 0 0 0 1.75-3L13.7 3.7a2 2 0 0 0-3.4 0Z" /></svg>
+                                </button>
                                 {/* info icon */}
                                 <div style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
@@ -747,6 +758,14 @@ export function ChatPage() {
             </FeatureGate>
             {showGiftPicker && (
                 <GiftPickerModal onClose={() => setShowGiftPicker(false)} onSend={sendGift} />
+            )}
+            {selected && (
+                <ReportUserModal
+                    open={reportOpen}
+                    reportedUserId={selected.id}
+                    reportedUserName={selected.name}
+                    onClose={() => setReportOpen(false)}
+                />
             )}
         </>
     );

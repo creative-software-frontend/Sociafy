@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
     try {
         let token;
 
@@ -17,7 +17,16 @@ const authMiddleware = (req, res, next) => {
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        req.user = decoded; // attach user data to request
+        const [rows] = await db.query(
+            "SELECT role, is_active FROM users WHERE id = ?",
+            [decoded.id]
+        );
+        const user = rows && rows[0];
+        if (!user) return res.status(404).json({ message: "User not found" });
+        if (Number(user.is_active) !== 1) {
+            return res.status(403).json({ message: "Your account is blocked by the administrator." });
+        }
+        req.user = { ...decoded, role: user.role };
 
         // ── Presence: update last_seen/is_online on every authenticated request ──
         if (req.user && req.user.id) {
